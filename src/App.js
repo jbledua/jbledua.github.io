@@ -32,7 +32,7 @@ function App() {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            My React Application
+            Josiah Ledua
           </Typography>
         </Toolbar>
       </AppBar>
@@ -40,15 +40,15 @@ function App() {
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
         <p>
-          Edit <code>src/App.js</code> and save to reload.
+          Coming soon...
         </p>
         <a
           className="App-link"
-          href="https://reactjs.org"
+          href="https://www.linkedin.com/in/jbledua/"
           target="_blank"
           rel="noopener noreferrer"
         >
-          Learn React
+          linkedin.com/in/jbledua
         </a>
       </header>
     </div>
