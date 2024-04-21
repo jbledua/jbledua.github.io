@@ -9,10 +9,12 @@ import MenuIcon from '@mui/icons-material/Menu';
 import DrawerComponent from './DrawerComponent';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
-import ConstructionPage from './Pages/ConstructionPage'; // Import the new ConstructionPage component
+import ConstructionPage from './Pages/Constuction/ConstructionPage'; // Import the new ConstructionPage component
 import NotFoundPage from './Pages/NotFoundPage'; // Import the new NotFoundPage component
 
 import useScrollTrigger from '@mui/material/useScrollTrigger';
+
+import CssBaseline from '@mui/material/CssBaseline';
 
 // In Construction flag
 const isInConstruction = true; // You can toggle this to enable/disable construction mode
@@ -44,6 +46,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <CssBaseline />
       <div className="App">
         <ElevationScroll>
           <AppBar position="fixed">

@@ -1,10 +1,8 @@
-// NotFoundPage.js
+// ProjectPage.js
 import React from 'react';
-import { useLocation } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 
-function NotFoundPage() {
-  const location = useLocation(); // This hook gives us access to the location object
+function ProjectPage() {
 
   return (
     <div>
