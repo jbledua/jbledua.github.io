@@ -1,5 +1,6 @@
 // App.js
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import './App.css';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
@@ -17,11 +18,11 @@ import useScrollTrigger from '@mui/material/useScrollTrigger';
 import CssBaseline from '@mui/material/CssBaseline';
 
 // In Construction flag
-const isInConstruction = true; // You can toggle this to enable/disable construction mode
-
+const isInConstruction = false; // You can toggle this to enable/disable construction mode
 
 function ElevationScroll(props) {
   const { children, window } = props;
+
   const trigger = useScrollTrigger({
     disableHysteresis: true,
     threshold: 0,
@@ -30,11 +31,14 @@ function ElevationScroll(props) {
 
   return React.cloneElement(children, {
     elevation: trigger ? 4 : 0,
+    style: {
+      backgroundColor: trigger ? "rgba(25, 118, 210, 1)" : "rgba(255, 255, 255, 0)", // Adjust the rgba for transparency
+      transition: 'background-color 0.3s linear', // Smooth transition for background color
+    }
   });
 }
 
-
-function App() {
+function App(props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const toggleDrawer = (open) => (event) => {
@@ -47,9 +51,9 @@ function App() {
   return (
     <BrowserRouter>
       <CssBaseline />
-      <div className="App">
-        <ElevationScroll>
-          <AppBar position="fixed">
+      <div className="App, App-header">
+        <ElevationScroll {...props}>
+          <AppBar position="fixed" color='primary'>
             <Toolbar>
               <IconButton
                 edge="start"
@@ -70,10 +74,8 @@ function App() {
         <DrawerComponent open={drawerOpen} toggleDrawer={toggleDrawer} />
         <Routes>
           {isInConstruction ? (
-            // Redirect all traffic to ConstructionPage if the site is under construction
             <Route path="*" element={<ConstructionPage />} />
           ) : (
-            // Normal routing when not in construction
             <>
               <Route path="/" element={<ConstructionPage />} />
               <Route path="*" element={<NotFoundPage />} />
