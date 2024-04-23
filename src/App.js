@@ -1,6 +1,5 @@
 // App.js
 import React, { useState } from 'react';
-import PropTypes from 'prop-types';
 import './App.css';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
@@ -12,13 +11,23 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 import ConstructionPage from './Pages/Constuction/ConstructionPage'; // Import the new ConstructionPage component
 import NotFoundPage from './Pages/NotFoundPage'; // Import the new NotFoundPage component
+import HomePage from './Pages/Home/HomePage'; // Import the new HomePage component
 
 import useScrollTrigger from '@mui/material/useScrollTrigger';
 
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import { Paper } from '@mui/material';
+import { Padding } from '@mui/icons-material';
+
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+  },
+});
 
 // In Construction flag
-const isInConstruction = false; // You can toggle this to enable/disable construction mode
+const isInConstruction = true; // You can toggle this to enable/disable construction mode
 
 function ElevationScroll(props) {
   const { children, window } = props;
@@ -49,9 +58,10 @@ function App(props) {
   };
 
   return (
+    <ThemeProvider theme={darkTheme}>
     <BrowserRouter>
       <CssBaseline />
-      <div className="App, App-header">
+      <div className="App">
         <ElevationScroll {...props}>
           <AppBar position="fixed" color='primary'>
             <Toolbar>
@@ -71,19 +81,23 @@ function App(props) {
           </AppBar>
         </ElevationScroll>
         <Toolbar /> {/* Offset toolbar for content below AppBar */}
-        <DrawerComponent open={drawerOpen} toggleDrawer={toggleDrawer} />
-        <Routes>
-          {isInConstruction ? (
-            <Route path="*" element={<ConstructionPage />} />
-          ) : (
-            <>
-              <Route path="/" element={<ConstructionPage />} />
-              <Route path="*" element={<NotFoundPage />} />
-            </>
-          )}
-        </Routes>
+        <Paper elevation={0} style={{marginTop: '-64px'}}> {/* Paper component to contain the content subracted the offset for toolbar*/}
+          <DrawerComponent open={drawerOpen} toggleDrawer={toggleDrawer} />
+          <Routes>
+            {isInConstruction ? (
+              <Route path="*" element={<ConstructionPage />} />
+            ) : (
+              <>
+                <Route path="/construction" element={<ConstructionPage />} />
+                <Route path="/" element={<HomePage />} />
+                <Route path="*" element={<NotFoundPage />} />
+              </>
+            )}
+          </Routes>
+        </Paper>
       </div>
     </BrowserRouter>
+    </ThemeProvider>
   );
 }
 
