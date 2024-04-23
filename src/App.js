@@ -18,11 +18,13 @@ import useScrollTrigger from '@mui/material/useScrollTrigger';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Paper } from '@mui/material';
-import { Padding } from '@mui/icons-material';
+//import { Padding } from '@mui/icons-material';
+
+import styled from '@mui/material/styles/styled';
 
 const darkTheme = createTheme({
   palette: {
-    mode: 'dark',
+    mode: 'light',
   },
 });
 
@@ -40,12 +42,14 @@ function ElevationScroll(props) {
 
   return React.cloneElement(children, {
     elevation: trigger ? 4 : 0,
-    style: {
-      backgroundColor: trigger ? "rgba(25, 118, 210, 1)" : "rgba(255, 255, 255, 0)", // Adjust the rgba for transparency
-      transition: 'background-color 0.3s linear', // Smooth transition for background color
-    }
+    // style: {
+    //   backgroundColor: trigger ? "rgba(25, 118, 210, 1)" : "rgba(255, 255, 255, 0)", // Adjust the rgba for transparency
+    //   transition: 'background-color 0.3s linear', // Smooth transition for background color
+    // }
   });
 }
+
+const Offset = styled('div')(({ theme }) => theme.mixins.toolbar);
 
 function App(props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -59,29 +63,28 @@ function App(props) {
 
   return (
     <ThemeProvider theme={darkTheme}>
-    <BrowserRouter>
-      <CssBaseline />
-      <div className="App">
-        <ElevationScroll {...props}>
-          <AppBar position="fixed" color='primary'>
-            <Toolbar>
-              <IconButton
-                edge="start"
-                color="inherit"
-                aria-label="menu"
-                sx={{ mr: 2 }}
-                onClick={() => toggleDrawer(true)}
-              >
-                <MenuIcon />
-              </IconButton>
-              <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                Josiah Ledua
-              </Typography>
-            </Toolbar>
-          </AppBar>
-        </ElevationScroll>
-        <Toolbar /> {/* Offset toolbar for content below AppBar */}
-        <Paper elevation={0} style={{marginTop: '-64px'}}> {/* Paper component to contain the content subracted the offset for toolbar*/}
+      <BrowserRouter>
+        <CssBaseline />
+        <div className="App">
+          <ElevationScroll {...props}>
+            <AppBar position="fixed">
+              <Toolbar>
+                <IconButton
+                  edge="start"
+                  color="inherit"
+                  aria-label="menu"
+                  sx={{ mr: 2 }}
+                  onClick={() => toggleDrawer(true)}
+                >
+                  <MenuIcon />
+                </IconButton>
+                <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+                  Home
+                </Typography>
+              </Toolbar>
+            </AppBar>
+          </ElevationScroll>
+          <Offset />
           <DrawerComponent open={drawerOpen} toggleDrawer={toggleDrawer} />
           <Routes>
             {isInConstruction ? (
@@ -94,9 +97,8 @@ function App(props) {
               </>
             )}
           </Routes>
-        </Paper>
-      </div>
-    </BrowserRouter>
+        </div>
+      </BrowserRouter>
     </ThemeProvider>
   );
 }
