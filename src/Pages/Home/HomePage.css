@@ -10,6 +10,7 @@
     height: auto; /* Maintain aspect ratio */
     display: block;
     margin: auto; /* Center the image */
+
   }
   
   .about-me {
@@ -25,26 +26,21 @@
     }
   }
 
-
-  .parallax {
-    height: 100vh;
-    overflow-x: hidden;
-  
-    perspective: 1px;
+  .parallax-container {
+    height: 80vh; /* Set the height of the container */
+    right: 25vw;
+    width: 80vw;
+    overflow: hidden; /* Hide anything going outside the container */
+    position: relative; /* Needed to position the pseudo elements */
   }
   
-  .parallax-layer {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
+  .profile-parallax {
+    background-image: url('../../img/JosiahLedua-Profile.jpg'); /* Adjust path as needed */
+    height: 100%;
+    width: 100%;
+    background-attachment: fixed; /* This creates the parallax effect */
+    background-position: left; /* Adjust this to change where the image is focused */
+    background-repeat: no-repeat;
+    background-size: auto 150%; /* Adjust this to scale the image */
   }
   
-  .layer1 {
-    transform: translateZ(0);
-  }
-  
-  .layer2 {
-    transform: translateZ(-1px);
-  }

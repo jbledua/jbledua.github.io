@@ -24,12 +24,12 @@ import styled from '@mui/material/styles/styled';
 
 const darkTheme = createTheme({
   palette: {
-    mode: 'light',
+    mode: 'dark',
   },
 });
 
 // In Construction flag
-const isInConstruction = true; // You can toggle this to enable/disable construction mode
+const isInConstruction = false; // You can toggle this to enable/disable construction mode
 
 function ElevationScroll(props) {
   const { children, window } = props;
@@ -42,10 +42,10 @@ function ElevationScroll(props) {
 
   return React.cloneElement(children, {
     elevation: trigger ? 4 : 0,
-    // style: {
-    //   backgroundColor: trigger ? "rgba(25, 118, 210, 1)" : "rgba(255, 255, 255, 0)", // Adjust the rgba for transparency
-    //   transition: 'background-color 0.3s linear', // Smooth transition for background color
-    // }
+    style: {
+      backgroundColor: trigger ? "rgba(25, 118, 210, 1)" : "rgba(255, 255, 255, 0)", // Adjust the rgba for transparency
+      transition: 'background-color 0.3s linear', // Smooth transition for background color
+    }
   });
 }
 
@@ -78,13 +78,13 @@ function App(props) {
                 >
                   <MenuIcon />
                 </IconButton>
-                <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+                <Typography variant="h6" component="div" sx={{ flexGrow: 1 }} className='NavBar'>
                   Home
                 </Typography>
               </Toolbar>
             </AppBar>
           </ElevationScroll>
-          <Offset />
+          
           <DrawerComponent open={drawerOpen} toggleDrawer={toggleDrawer} />
           <Routes>
             {isInConstruction ? (

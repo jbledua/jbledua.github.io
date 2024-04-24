@@ -11,17 +11,17 @@ import IconButton from '@mui/material/IconButton';
 import MailIcon from '@mui/icons-material/Mail';
 import { LinkedIn,GitHub } from '@mui/icons-material';
 
-import { Parallax } from 'react-parallax';
-
 function HomePage() {
   return (
     <div>
       <CssBaseline />
-      <Paper elevation={3} className="container" style={{background: "lightblue"}}>{/* About Me Section*/}
+      <Paper elevation={3} className="container" >{/* About Me Section style={{background: "#282c34", color:"white"}}*/}
         <Grid container spacing={3} justifyContent="center" alignItems="top">
           {/* Profile Image Grid; use xs for full width on small screens and md for partial width on larger screens */}
           <Grid item xs={12} md={4}>
-            <img src={profile} alt="profile" className="profile"/>
+            <div className="parallax-container">
+              <div className="profile-parallax"></div> {/* This div uses the parallax background */}
+            </div>
           </Grid>
           {/* About Me Grid */}
           <Grid item xs={12} md={4}>
@@ -52,7 +52,6 @@ function HomePage() {
         <p>Coming soon...</p>
       </Paper>
 
-      
     </div>
   );
 }
