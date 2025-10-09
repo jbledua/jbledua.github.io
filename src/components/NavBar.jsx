@@ -36,6 +36,9 @@ export default function NavBar() {
             <Button component={RouterLink} to="/projects" color="inherit" variant="text">
                 Projects
             </Button>
+            <Button component={RouterLink} to="/resume" color="inherit" variant="text">
+                Resume
+            </Button>
             <Button component={RouterLink} to="/contact" variant="contained">
                 Contact
             </Button>
