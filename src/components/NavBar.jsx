@@ -25,7 +25,7 @@ export default function NavBar() {
         <Toolbar>
             <Typography variant="h6" sx={{ flexGrow: 1 }}>
             <Link component={RouterLink} to="/" underline="none" color="inherit">
-                jbledua.dev
+                Josiah Ledua
             </Link>
             </Typography>
             {/* Desktop nav */}
