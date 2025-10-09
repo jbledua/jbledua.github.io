@@ -13,6 +13,11 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # Inject Vite env vars from repo secrets so they are embedded at build time
+      VITE_N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+      VITE_N8N_WEBHOOK_SECRET: ${{ secrets.N8N_WEBHOOK_SECRET }}
+      VITE_ASSUME_SUCCESS_ON_OPAQUE: 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4

@@ -20,6 +20,11 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CI: true
+      # Inject Vite env vars from repo secrets so they are embedded at build time
+      VITE_N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+      VITE_N8N_WEBHOOK_SECRET: ${{ secrets.N8N_WEBHOOK_SECRET }}
+      # Optional: when true, UI treats opaque/CORS-blocked responses as success
+      VITE_ASSUME_SUCCESS_ON_OPAQUE: 'true'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
