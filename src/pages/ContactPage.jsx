@@ -43,7 +43,9 @@ export default function Contact() {
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    // Capture the form element before any async work (React may pool & nullify the event)
+    const formEl = event.currentTarget;
+    const form = new FormData(formEl);
     const requesterName = form.get('requesterName')?.toString().trim();
     const requesterEmail = form.get('requesterEmail')?.toString().trim();
     const message = form.get('message')?.toString().trim();
@@ -65,7 +67,7 @@ export default function Contact() {
     if (company) {
       // Likely bot submission; pretend success to avoid clues
       setStatus('success');
-      event.currentTarget.reset();
+      if (formEl && typeof formEl.reset === 'function') formEl.reset();
       return;
     }
 
@@ -99,13 +101,13 @@ export default function Contact() {
         // Treat 2xx as success. Optionally, consider opaque responses as success when enabled.
         if (res.ok) {
           setStatus('success');
-          event.currentTarget.reset();
+          if (formEl && typeof formEl.reset === 'function') formEl.reset();
           return;
         }
         if (ASSUME_SUCCESS_ON_OPAQUE && (res.type === 'opaque' || res.status === 0)) {
           // Likely CORS-restricted response; request was still sent to the server.
           setStatus('success');
-          event.currentTarget.reset();
+          if (formEl && typeof formEl.reset === 'function') formEl.reset();
           return;
         }
         throw new Error(`Submission failed (status: ${res.status})`);
@@ -115,7 +117,7 @@ export default function Contact() {
         // If enabled, treat common CORS/network errors as success because the request likely reached the server.
         if (ASSUME_SUCCESS_ON_OPAQUE && (err?.name === 'TypeError' || /Failed to fetch/i.test(err?.message || ''))) {
           setStatus('success');
-          event.currentTarget.reset();
+          if (formEl && typeof formEl.reset === 'function') formEl.reset();
           return;
         }
         setStatus('error');
