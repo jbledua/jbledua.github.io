@@ -19,8 +19,11 @@ import Section from '../components/Section.jsx';
 // TODO: Update these with your actual details.
 const NAME = 'Josiah Ledua';
 const PROFILE_IMG = '/images/profile.jpg'; // Place your photo at public/images/profile.jpg
-// Configure a spam-safe form endpoint (e.g., Formspree/Getform). For Vite, prefer .env: VITE_CONTACT_FORM_ENDPOINT
-const FORM_ENDPOINT = import.meta.env.VITE_CONTACT_FORM_ENDPOINT || 'https://formspree.io/f/yourFormId';
+// n8n webhook endpoint and optional shared secret.
+// Configure in your .env: VITE_N8N_WEBHOOK_URL and optionally VITE_N8N_WEBHOOK_SECRET
+const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL;
+const N8N_WEBHOOK_SECRET = import.meta.env.VITE_N8N_WEBHOOK_SECRET;
+const ASSUME_SUCCESS_ON_OPAQUE = import.meta.env.VITE_ASSUME_SUCCESS_ON_OPAQUE === 'true';
 // Social links (replace placeholders with your real handles/URLs)
 const SOCIAL = {
   github: 'https://github.com/jbledua',
@@ -53,9 +56,9 @@ export default function Contact() {
       form.get('wantProjectInfo') ? 'Project info' : null,
     ].filter(Boolean);
 
-    if (!FORM_ENDPOINT || FORM_ENDPOINT.includes('yourFormId')) {
+    if (!N8N_WEBHOOK_URL) {
       setStatus('error');
-      setErrorMsg('Form endpoint not configured. Please set VITE_CONTACT_FORM_ENDPOINT in a .env file.');
+      setErrorMsg('Contact form is not configured. Please set VITE_N8N_WEBHOOK_URL in a .env file.');
       return;
     }
 
@@ -75,20 +78,46 @@ export default function Contact() {
       requested,
       message,
       source: 'site-contact',
+      metadata: {
+        url: window?.location?.href,
+        userAgent: navigator?.userAgent,
+        timestamp: new Date().toISOString(),
+      },
     };
 
-    fetch(FORM_ENDPOINT, {
+    const headers = { 'Content-Type': 'application/json' };
+    if (N8N_WEBHOOK_SECRET) {
+      headers['X-Webhook-Secret'] = N8N_WEBHOOK_SECRET;
+    }
+
+    fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(payload),
     })
       .then((res) => {
-        if (!res.ok) throw new Error('Submission failed');
-        setStatus('success');
-        event.currentTarget.reset();
+        // Treat 2xx as success. Optionally, consider opaque responses as success when enabled.
+        if (res.ok) {
+          setStatus('success');
+          event.currentTarget.reset();
+          return;
+        }
+        if (ASSUME_SUCCESS_ON_OPAQUE && (res.type === 'opaque' || res.status === 0)) {
+          // Likely CORS-restricted response; request was still sent to the server.
+          setStatus('success');
+          event.currentTarget.reset();
+          return;
+        }
+        throw new Error(`Submission failed (status: ${res.status})`);
       })
       .catch((err) => {
         console.error(err);
+        // If enabled, treat common CORS/network errors as success because the request likely reached the server.
+        if (ASSUME_SUCCESS_ON_OPAQUE && (err?.name === 'TypeError' || /Failed to fetch/i.test(err?.message || ''))) {
+          setStatus('success');
+          event.currentTarget.reset();
+          return;
+        }
         setStatus('error');
         setErrorMsg('Something went wrong sending your request. Please try again later or reach out via LinkedIn.');
       });

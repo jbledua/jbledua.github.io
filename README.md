@@ -1,3 +1,57 @@
+# jbledua.github.io
+
+## Development
+
+ 1. Install dependencies
+ 2. Run dev server
+
+## Contact form -> n8n -> Discord
+
+This project can post contact requests directly to an n8n webhook and forward them to a Discord channel.
+
+### 1) Configure environment
+
+Vite loads env files by mode. Recommended setup:
+
+- Development: `.env.development.local`
+- Production build: `.env.production.local`
+
+You can also use `.env.local` (applies to all modes), but per-mode files are safer.
+
+Create one of the above files at the project root:
+
+```
+VITE_N8N_WEBHOOK_URL=https://your-n8n.example.com/webhook/<workflow-id>
+# Optional shared secret your n8n workflow checks (via header X-Webhook-Secret)
+VITE_N8N_WEBHOOK_SECRET=some-long-random-string
+```
+
+Restart the dev server after adding/changing env vars.
+
+### 2) n8n workflow
+
+- Trigger: Webhook (POST). Set the path to something unique and, if desired, enable "Response" with 200 OK.
+- Security: If you used `VITE_N8N_WEBHOOK_SECRET`, add a simple IF node to check `{{$json["headers"]["x-webhook-secret"]}}` equals your secret; reject otherwise.
+- Optional: Validate and map fields from the incoming JSON body: `requesterName`, `requesterEmail`, `requested` (array), `message`, and `metadata`.
+- Discord: Add a Discord node configured with your bot token and target channel. Compose a message like:
+
+```
+New contact request
+- Name: {{$json.requesterName}}
+- Email: {{$json.requesterEmail}}
+- Requested: {{($json.requested || []).join(', ')}}
+- Message: {{$json.message}}
+- From: {{$json.metadata.url}} at {{$json.metadata.timestamp}}
+```
+
+Return a 200 response so the site shows success.
+
+### 3) Test locally
+
+- Run the site and submit the form on /contact.
+- Check n8n execution log and Discord channel for the message.
+
+If you see an error on the page, ensure `VITE_N8N_WEBHOOK_URL` is set and reachable from the browser.
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
