@@ -40,6 +40,7 @@ function parseRepo(urlString) {
     if (u.hostname !== 'github.com' || parts.length < 2) return null;
     return { owner: parts[0], repo: parts[1] };
   } catch (e) {
+      if (import.meta.env.DEV) console.debug('Failed to parse repo URL:', e);
     return null;
   }
 }
@@ -160,7 +161,13 @@ async function loadRepoData(repoEntry) {
 function RepoCard({ data }) {
   const theme = useTheme();
   const { repoUrl, owner, repo, branch, repoName, repoDescription, imageUrl, lightImageUrl, darkImageUrl, error } = data;
-  const title = repoName || (owner && repo ? `${owner}/${repo}` : repoUrl);
+  
+  // Add Branch to title if not default "main" or "master"
+  // (optional, uncomment if desired)
+  const title = repoName || (owner && repo ? `${owner}/${repo}` : repoUrl) + (branch && !['main', 'master'].includes(branch) ? ` (${branch})` : '');
+  
+  // Simpler title without branch
+  //const title = repoName || (owner && repo ? `${owner}/${repo}` : repoUrl);
   const chosenImage = (theme?.palette?.mode === 'dark' ? darkImageUrl : lightImageUrl)
     || imageUrl
     || (theme?.palette?.mode === 'dark' ? DEFAULT_GITHUB_IMAGE_DARK : DEFAULT_GITHUB_IMAGE_LIGHT);
