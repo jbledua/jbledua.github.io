@@ -3,11 +3,13 @@ import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Section from '../components/Section.jsx';
 import Hero from '../components/Hero.jsx';
+import { Divider } from '@mui/material';
 
 export default function Home() {
   return (
     <>
       <Hero />
+      <Divider sx={{ my: 4 }} />
       <Section>
         <Typography variant="h3" component="h1" gutterBottom>
           Hi, I'm JB
