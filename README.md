@@ -52,6 +52,24 @@ Return a 200 response so the site shows success.
 - Check n8n execution log and Discord channel for the message.
 
 If you see an error on the page, ensure `VITE_N8N_WEBHOOK_URL` is set and reachable from the browser.
+
+## Deployment (GitHub Pages via Actions)
+
+This repo includes a workflow at `.github/workflows/deploy.yml` that builds the site with Vite and deploys to GitHub Pages. It targets branches `main` and `project-origin`.
+
+Steps to enable:
+
+1. In GitHub, go to Settings → Pages and set the Source to "GitHub Actions".
+2. In Settings → Secrets and variables → Actions, add these repository secrets:
+	- `N8N_WEBHOOK_URL`: your n8n webhook URL
+	- `N8N_WEBHOOK_SECRET`: optional token checked by your n8n workflow
+3. Push to `project-origin` (or `main`) to trigger the workflow.
+
+Notes:
+
+- The workflow sets `VITE_N8N_WEBHOOK_URL`, `VITE_N8N_WEBHOOK_SECRET`, and `VITE_ASSUME_SUCCESS_ON_OPAQUE` during the build.
+- The custom domain `josiah.ledua.ca` is persisted via `public/CNAME`.
+- All `VITE_*` variables are public in the client bundle; keep real security on the n8n side (CORS, token checks, rate limiting).
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
