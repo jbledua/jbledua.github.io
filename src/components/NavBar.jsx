@@ -30,6 +30,9 @@ export default function NavBar() {
             </Typography>
             {/* Desktop nav */}
             <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 2, alignItems: 'center' }}>
+            <Button component={RouterLink} to="/about" color="inherit" variant="text">
+                About
+            </Button>
             <Button component={RouterLink} to="/projects" color="inherit" variant="text">
                 Projects
             </Button>
