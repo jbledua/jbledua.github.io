@@ -1,8 +1,9 @@
-name: Deploy to GitHub Pages
+name: Legacy Deploy to GitHub Pages (manual)
 
 on:
-  push:
-    branches: [ project-origin ]
+  # Disabled from automatic pushes to avoid duplicate deployments.
+  # Use the Actions tab to run manually if ever needed.
+  workflow_dispatch:
 
 permissions:
   contents: read

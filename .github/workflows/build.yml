@@ -1,10 +1,10 @@
 name: Build and Deploy
 
 on:
-    push:
-        branches:
-        - '**'
-    workflow_dispatch:
+  push:
+    branches:
+      - project-origin
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -52,7 +52,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/project-origin'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
