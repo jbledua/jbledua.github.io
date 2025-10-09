@@ -31,7 +31,7 @@ const SOCIAL = {
   facebook: 'https://www.facebook.com/jbledua',
   x: 'https://x.com/jbledua',
   discord: 'https://discordapp.com/users/683827691019173996',
-  instagram: 'https://www.instagram.com/your-handle',
+  instagram: 'https://www.instagram.com/jbledua/',
 };
 // Discord icon temporarily disabled until a server invite link is available.
 // When ready, place assets under public/images (e.g., Discord-Symbol-Black.svg, Discord-Symbol-White.svg)
