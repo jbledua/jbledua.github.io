@@ -1,1 +1,32 @@
-<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=/jbledua.github.io/"/></head><body></body></html>
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>404 - Page Not Found</title>
+			<script>
+				// SPA redirect for GitHub Pages: redirect to index with original path preserved
+				(function () {
+					var target = '/?p=' + encodeURIComponent(location.pathname + location.search + location.hash);
+					// Use replace so the 404 doesn't stay in history
+					location.replace(target);
+				})();
+			</script>
+		<style>
+			body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; margin: 0; display: grid; place-items: center; min-height: 100vh; color: #1a1a1a; }
+			.card { text-align: center; padding: 2rem; }
+			h1 { font-size: 3rem; margin: 0 0 .25rem; }
+			p { color: #666; margin: 0 0 1.5rem; }
+			a { display: inline-block; padding: .6rem 1rem; border-radius: 8px; background: #1976d2; color: white; text-decoration: none; }
+			a:hover { background: #1565c0; }
+		</style>
+	</head>
+	<body>
+		<div class="card">
+			<h1>404</h1>
+			<p>Sorry, we couldn’t find that page.</p>
+			<a href="/">Go to Home</a>
+		</div>
+	</body>
+  
+</html>
