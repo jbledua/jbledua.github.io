@@ -256,7 +256,7 @@ export default function Projects() {
           },
         }}
       >
-        <Typography variant="h4" gutterBottom>Projects</Typography>
+        <Typography variant="h4" gutterBottom>Recent Projects</Typography>
         <Typography
           variant="subtitle1"
           color="text.secondary"
