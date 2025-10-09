@@ -8,7 +8,7 @@ import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 import Skeleton from '@mui/material/Skeleton';
 import Divider from '@mui/material/Divider';
-import { useTheme } from '@mui/material/styles';
+import { useTheme, alpha } from '@mui/material/styles';
 import Section from '../components/Section.jsx';
 
 // Default images to use when no repo logo/banner is found (served locally from public/)
@@ -209,6 +209,7 @@ function RepoCard({ data }) {
 export default function Projects() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const theme = useTheme();
 
   const repos = useMemo(() => REPO_LINKS.filter(Boolean), []);
 
@@ -228,8 +229,42 @@ export default function Projects() {
   }, [repos]);
 
   return (
-    <Section>
-      <Typography variant="h4" gutterBottom>Projects</Typography>
+    <Section sx={{ pt: 0 }}>
+      {/* Top header with subtle animated glow using primary.main */}
+      <Box
+        sx={{
+          position: 'relative',
+          overflow: 'hidden',
+          textAlign: 'center',
+          pt: { xs: 6, sm: 8 },
+          pb: { xs: 4, sm: 6 },
+          mb: 2,
+          '::before': {
+            content: '""',
+            position: 'absolute',
+            inset: 0,
+            top: -24, // extend above to avoid blur cropping gap under AppBar
+            height: { xs: 164, sm: 204 },
+            background: `radial-gradient(120% 70% at 50% -10%, ${alpha(theme.palette.primary.main, 0.35)} 0%, ${alpha(theme.palette.primary.main, 0.12)} 35%, transparent 65%)`,
+            filter: 'blur(8px)',
+            pointerEvents: 'none',
+            animation: 'projectsGlow 6s ease-in-out infinite',
+          },
+          '@keyframes projectsGlow': {
+            '0%, 100%': { opacity: 0.65 },
+            '50%': { opacity: 0.95 },
+          },
+        }}
+      >
+        <Typography variant="h4" gutterBottom>Projects</Typography>
+        <Typography
+          variant="subtitle1"
+          color="text.secondary"
+          sx={{ maxWidth: 900, mx: 'auto', px: 2 }}
+        >
+          Discover selected projects, tools, and experiments I’ve built. Quick snapshots below with links to dive into the code.
+        </Typography>
+      </Box>
       <Grid container spacing={2}>
         {(loading && !projects.length ? Array.from({ length: 6 }) : projects).map((p, idx) => (
           <Grid key={p?.repoUrl || idx} size={4}>
