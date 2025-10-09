@@ -15,6 +15,8 @@ import Alert from '@mui/material/Alert';
 import { GitHub, LinkedIn, Facebook, Twitter, Instagram } from '@mui/icons-material';
 import { useState } from 'react';
 import Section from '../components/Section.jsx';
+import ReCAPTCHA from 'react-google-recaptcha';
+import { useRef } from 'react';
 
 // TODO: Update these with your actual details.
 const NAME = 'Josiah Ledua';
@@ -24,6 +26,10 @@ const PROFILE_IMG = '/images/profile.jpg'; // Place your photo at public/images/
 const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL;
 const N8N_WEBHOOK_SECRET = import.meta.env.VITE_N8N_WEBHOOK_SECRET;
 const ASSUME_SUCCESS_ON_OPAQUE = import.meta.env.VITE_ASSUME_SUCCESS_ON_OPAQUE === 'true';
+// reCAPTCHA site key. Configure in your .env: VITE_RECAPTCHA_SITE_KEY
+const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+// Detect Vite dev server to bypass reCAPTCHA locally (it doesn't work on localhost with strict keys)
+const IS_DEV = import.meta.env.DEV;
 // Social links (replace placeholders with your real handles/URLs)
 const SOCIAL = {
   github: 'https://github.com/jbledua',
@@ -40,6 +46,8 @@ const SOCIAL = {
 export default function Contact() {
   const [status, setStatus] = useState('idle'); // idle | submitting | success | error
   const [errorMsg, setErrorMsg] = useState('');
+  const [captchaToken, setCaptchaToken] = useState('');
+  const recaptchaRef = useRef(null);
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -71,6 +79,15 @@ export default function Contact() {
       return;
     }
 
+    // In production, require a valid reCAPTCHA token when enabled
+    if (!IS_DEV && RECAPTCHA_SITE_KEY) {
+      if (!captchaToken) {
+        setStatus('error');
+        setErrorMsg('Please complete the reCAPTCHA challenge before submitting.');
+        return;
+      }
+    }
+
     setStatus('submitting');
     setErrorMsg('');
 
@@ -80,6 +97,7 @@ export default function Contact() {
       requested,
       message,
       source: 'site-contact',
+      captchaToken: !IS_DEV && RECAPTCHA_SITE_KEY ? captchaToken : undefined,
       metadata: {
         url: window?.location?.href,
         userAgent: navigator?.userAgent,
@@ -102,12 +120,26 @@ export default function Contact() {
         if (res.ok) {
           setStatus('success');
           if (formEl && typeof formEl.reset === 'function') formEl.reset();
+          // reset captcha after successful submission
+          if (recaptchaRef.current) {
+            try { recaptchaRef.current.reset(); } catch (e) {
+              // Best-effort reset; ignore if widget not mounted
+              if (import.meta.env.DEV) console.debug('reCAPTCHA reset failed:', e);
+            }
+          }
+          setCaptchaToken('');
           return;
         }
         if (ASSUME_SUCCESS_ON_OPAQUE && (res.type === 'opaque' || res.status === 0)) {
           // Likely CORS-restricted response; request was still sent to the server.
           setStatus('success');
           if (formEl && typeof formEl.reset === 'function') formEl.reset();
+          if (recaptchaRef.current) {
+            try { recaptchaRef.current.reset(); } catch (e) {
+              if (import.meta.env.DEV) console.debug('reCAPTCHA reset failed (opaque):', e);
+            }
+          }
+          setCaptchaToken('');
           return;
         }
         throw new Error(`Submission failed (status: ${res.status})`);
@@ -118,6 +150,12 @@ export default function Contact() {
         if (ASSUME_SUCCESS_ON_OPAQUE && (err?.name === 'TypeError' || /Failed to fetch/i.test(err?.message || ''))) {
           setStatus('success');
           if (formEl && typeof formEl.reset === 'function') formEl.reset();
+          if (recaptchaRef.current) {
+            try { recaptchaRef.current.reset(); } catch (e) {
+              if (import.meta.env.DEV) console.debug('reCAPTCHA reset failed (error path):', e);
+            }
+          }
+          setCaptchaToken('');
           return;
         }
         setStatus('error');
@@ -213,6 +251,18 @@ export default function Contact() {
           )}
           {status === 'error' && (
             <Alert severity="error">{errorMsg}</Alert>
+          )}
+
+          {/* reCAPTCHA rendered only when we have a site key and not in local dev */}
+          {!IS_DEV && RECAPTCHA_SITE_KEY && (
+            <Box>
+              <ReCAPTCHA
+                ref={recaptchaRef}
+                sitekey={RECAPTCHA_SITE_KEY}
+                onChange={(token) => setCaptchaToken(token || '')}
+                onExpired={() => setCaptchaToken('')}
+              />
+            </Box>
           )}
 
           <Stack direction="row" spacing={1}>
