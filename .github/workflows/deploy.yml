@@ -18,6 +18,8 @@ jobs:
       VITE_N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
       VITE_N8N_WEBHOOK_SECRET: ${{ secrets.N8N_WEBHOOK_SECRET }}
       VITE_RECAPTCHA_SITE_KEY: ${{ secrets.RECAPTCHA_SITE_KEY }}
+      VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
       VITE_ASSUME_SUCCESS_ON_OPAQUE: 'true'
     steps:
       - name: Checkout
