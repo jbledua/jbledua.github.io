@@ -371,11 +371,12 @@ join (values
 ) as x(t,c,pos) on x.t = j.title and x.c = j.company
 where p.name = 'Digital Marketing Technologist';
 
--- Seed example education
+-- Seed education (from LinkedIn)
 insert into public.education (id, school, degree, field_of_study, location, start_date, end_date, description, bullets)
 values
-  (gen_random_uuid(), 'Lakehead University', 'BSc (incomplete)', 'Computer Science', 'Thunder Bay, Ontario, Canada', '2019-09-01', '2020-08-01', 'Undergraduate studies', array[]::text[]),
-  (gen_random_uuid(), 'Confederation College', 'Ontario College Diploma (incomplete)', 'Electronics Engineering Technology', 'Thunder Bay, Ontario, Canada', '2011-09-01', '2012-04-01', 'Diploma program', array[]::text[]);
+  (gen_random_uuid(), 'Lakehead University', 'Bachelor of Science - BS', 'Computer Science', null, '2018-01-01', '2025-12-31', 'Undergraduate studies', array[]::text[]),
+  (gen_random_uuid(), 'Confederation College', 'Electronics Technologist Diploma', 'Electrical and Electronics Engineering', null, '2009-01-01', '2014-12-31', 'Diploma program', array[]::text[]),
+  (gen_random_uuid(), 'WISDOM Home Schooling', 'High School', 'High School/Secondary Diploma', null, '2009-01-01', '2009-12-31', 'High school diploma', array[]::text[]);
 
 -- Link education to presets with simple ordering
 with ranked_edu as (

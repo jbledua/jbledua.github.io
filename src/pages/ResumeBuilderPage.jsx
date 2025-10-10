@@ -174,6 +174,8 @@ export default function ResumeBuilderPage() {
   const printRef = useRef(null);
 
   const experiencesToShow = useMemo(() => state.experiences.filter((e) => e.enabled), [state.experiences]);
+  const educationToShow = useMemo(() => (state.education || []).filter((e) => e.enabled), [state.education]);
+  const certificatesToShow = useMemo(() => (state.certificates || []).filter((c) => c.enabled), [state.certificates]);
 
   const skillsToShow = useMemo(() => {
     const res = [];
@@ -207,6 +209,8 @@ export default function ResumeBuilderPage() {
             options: { includePhoto: !!ui.options?.includePhoto },
             experiences: ui.experiences || [],
             skills: ui.skills || {},
+            education: ui.education || [],
+            certificates: ui.certificates || [],
           });
           setSummaryVariant(Number(ui.summaryVariant ?? 0));
         }
@@ -228,6 +232,8 @@ export default function ResumeBuilderPage() {
         options: { includePhoto: !!ui.options?.includePhoto },
         experiences: ui.experiences || [],
         skills: ui.skills || {},
+        education: ui.education || [],
+        certificates: ui.certificates || [],
       });
       setSummaryVariant(Number(ui.summaryVariant ?? 0));
     } catch (e) {
@@ -248,6 +254,18 @@ export default function ResumeBuilderPage() {
     setState((s) => ({
       ...s,
       experiences: s.experiences.map((e) => (e.id === id ? { ...e, enabled: !e.enabled } : e)),
+    }));
+  };
+  const toggleEducationEnabled = (id) => {
+    setState((s) => ({
+      ...s,
+      education: (s.education || []).map((e) => (e.id === id ? { ...e, enabled: !e.enabled } : e)),
+    }));
+  };
+  const toggleCertificateEnabled = (id) => {
+    setState((s) => ({
+      ...s,
+      certificates: (s.certificates || []).map((c) => (c.id === id ? { ...c, enabled: !c.enabled } : c)),
     }));
   };
   const updateRoleVariant = (id, variantIdx) => {
@@ -365,6 +383,60 @@ export default function ResumeBuilderPage() {
               </Box>
             ))}
           </Stack>
+
+          {/* Education */}
+          {educationToShow.length > 0 && (
+            <>
+              <Divider sx={{ my: 3 }} />
+              <Typography variant="h6" gutterBottom>Education</Typography>
+              <Stack spacing={2}>
+                {educationToShow.map((e) => (
+                  <Box key={e.id}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{e.label}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {[e.degree, e.field].filter(Boolean).join(', ')}{(e.degree || e.field) && (e.period ? ' · ' : '')}{e.period}
+                    </Typography>
+                    {e.summary && (
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>{e.summary}</Typography>
+                    )}
+                    {e.bullets?.length > 0 && (
+                      <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: '1.2rem' }}>
+                        {e.bullets.map((b, i) => (
+                          <li key={i}><Typography variant="body2">{b}</Typography></li>
+                        ))}
+                      </ul>
+                    )}
+                  </Box>
+                ))}
+              </Stack>
+            </>
+          )}
+
+          {/* Certificates */}
+          {certificatesToShow.length > 0 && (
+            <>
+              <Divider sx={{ my: 3 }} />
+              <Typography variant="h6" gutterBottom>Certificates</Typography>
+              <Stack spacing={2}>
+                {certificatesToShow.map((c) => (
+                  <Box key={c.id}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{c.label}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {[c.issuer, c.period].filter(Boolean).join(' · ')}
+                    </Typography>
+                    {c.credentialUrl && (
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>
+                        <a href={c.credentialUrl} target="_blank" rel="noreferrer">View Credential</a>
+                      </Typography>
+                    )}
+                    {c.summary && (
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>{c.summary}</Typography>
+                    )}
+                  </Box>
+                ))}
+              </Stack>
+            </>
+          )}
         </Box>
       </Paper>
 
@@ -415,6 +487,24 @@ export default function ResumeBuilderPage() {
           </Stack>
 
           <Divider sx={{ my: 2 }} />
+          <Typography variant="subtitle1" gutterBottom>Education</Typography>
+          <Stack spacing={2}>
+            {(state.education || []).map((e) => (
+              <Box key={e.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}>
+                <FormControlLabel control={<Checkbox checked={e.enabled} onChange={() => toggleEducationEnabled(e.id)} />} label={e.label} />
+              </Box>
+            ))}
+          </Stack>
+
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="subtitle1" gutterBottom>Certificates</Typography>
+          <Stack spacing={2}>
+            {(state.certificates || []).map((c) => (
+              <Box key={c.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}>
+                <FormControlLabel control={<Checkbox checked={c.enabled} onChange={() => toggleCertificateEnabled(c.id)} />} label={c.label} />
+              </Box>
+            ))}
+          </Stack>
           <Typography variant="subtitle1" gutterBottom>Skills</Typography>
           <Stack spacing={1}>
             {Object.entries(state.skills).map(([group, items]) => (

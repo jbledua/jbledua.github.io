@@ -86,11 +86,59 @@ export async function getPreset(presetId) {
     skills[g.name] = items;
   });
 
+  // Fetch education linked to this preset with ordering
+  const { data: presetEducation, error: peErr } = await supabase
+    .from('preset_education')
+    .select(`
+      id, education_id, enabled, position,
+      education(*)
+    `)
+    .eq('preset_id', presetId)
+    .order('position', { ascending: true });
+  if (peErr) throw peErr;
+
+  const education = (presetEducation || []).map((pe) => ({
+    id: pe.education_id,
+    label: pe.education?.school || 'School',
+    enabled: pe.enabled,
+    degree: pe.education?.degree || null,
+    field: pe.education?.field_of_study || null,
+    location: pe.education?.location || null,
+    period: buildPeriod(pe.education?.start_date, pe.education?.end_date),
+    summary: pe.education?.description || null,
+    bullets: pe.education?.bullets || [],
+  }));
+
+  // Fetch certificates linked to this preset with ordering
+  const { data: presetCertificates, error: pcErr } = await supabase
+    .from('preset_certificates')
+    .select(`
+      id, certificate_id, enabled, position,
+      certificates(*)
+    `)
+    .eq('preset_id', presetId)
+    .order('position', { ascending: true });
+  if (pcErr) throw pcErr;
+
+  const certificates = (presetCertificates || []).map((pc) => ({
+    id: pc.certificate_id,
+    label: pc.certificates?.name || 'Certificate',
+    enabled: pc.enabled,
+    issuer: pc.certificates?.issuer || null,
+    period: buildPeriod(pc.certificates?.issue_date, pc.certificates?.expiration_date),
+    credentialId: pc.certificates?.credential_id || null,
+    credentialUrl: pc.certificates?.credential_url || null,
+    summary: pc.certificates?.description || null,
+    tags: pc.certificates?.tags || [],
+  }));
+
   return {
     options: { includePhoto: !!preset.include_photo },
     summaryVariant: preset.summary_variant || 0,
     experiences,
     skills,
+    education,
+    certificates,
   };
 }
 
