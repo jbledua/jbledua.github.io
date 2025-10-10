@@ -329,15 +329,23 @@ export default function ResumeBuilderPage() {
           <Stack spacing={2} sx={{ mb: 3 }}>
             {experiencesToShow.map((e) => {
               const v = e.variants[e.selectedVariant] || e.variants[0];
+              const meta = [v.period, v.employmentType].filter(Boolean).join(' · ');
               return (
                 <Box key={e.id}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{v.title}</Typography>
-                  <Typography variant="caption" color="text.secondary">{v.period}</Typography>
-                  <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: '1.2rem' }}>
-                    {v.bullets.map((b, i) => (
-                      <li key={i}><Typography variant="body2">{b}</Typography></li>
-                    ))}
-                  </ul>
+                  {meta && (
+                    <Typography variant="caption" color="text.secondary">{meta}</Typography>
+                  )}
+                  {v.summary && (
+                    <Typography variant="body2" sx={{ mt: 0.5 }}>{v.summary}</Typography>
+                  )}
+                  {v.bullets?.length > 0 && (
+                    <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: '1.2rem' }}>
+                      {v.bullets.map((b, i) => (
+                        <li key={i}><Typography variant="body2">{b}</Typography></li>
+                      ))}
+                    </ul>
+                  )}
                 </Box>
               );
             })}

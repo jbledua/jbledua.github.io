@@ -9,7 +9,9 @@ create table if not exists public.jobs (
     company text not null, 
     location text, 
     start_date date not null, 
-    end_date date, description text, 
+    end_date date,
+    description text,
+    employment_type text, -- e.g., 'Full-time', 'Part-time', 'Contract', 'Internship', 'Freelance'
     bullets text[], 
     created_at timestamptz not null default now()
 );
@@ -18,6 +20,20 @@ create table if not exists public.jobs (
 alter table public.jobs add column if not exists role text;
 -- Backfill role from title if empty
 update public.jobs set role = coalesce(role, title) where role is null;
+
+-- Basic backfill for employment_type using description keywords if not already set
+update public.jobs
+set employment_type = coalesce(employment_type,
+  case
+    when description ilike '%part-time%' then 'Part-time'
+    when description ilike '%full-time%' then 'Full-time'
+    when description ilike '%contract%' then 'Contract'
+    when description ilike '%intern%' then 'Internship'
+    when description ilike '%freelance%' then 'Freelance'
+    else null
+  end
+)
+where employment_type is null;
 
 -- presets: top-level preset definitions
 create table if not exists public.presets (
@@ -35,6 +51,7 @@ create table if not exists public.job_variants (
   job_id uuid not null references public.jobs(id) on delete cascade,
   variant_index int2 not null default 0,
   title text not null,
+  summary text, -- optional brief description for this variant
   bullets text[] not null default '{}',
   unique(job_id, variant_index)
 );

@@ -25,7 +25,7 @@ export async function getPreset(presetId) {
     .from('preset_jobs')
     .select(`
       id, job_id, enabled, selected_variant, position,
-      jobs(*, job_variants(job_id, variant_index, title, bullets))
+      jobs(*, job_variants(job_id, variant_index, title, summary, bullets))
     `)
     .eq('preset_id', presetId)
     .order('position', { ascending: true });
@@ -40,6 +40,7 @@ export async function getPreset(presetId) {
       : [{
           variant_index: 0,
           title: pj.jobs?.title || 'Role',
+          summary: pj.jobs?.description || null,
           bullets: pj.jobs?.bullets || [],
         }];
 
@@ -48,12 +49,14 @@ export async function getPreset(presetId) {
       .map((v) => ({
         title: v.title,
         period: buildPeriod(pj.jobs?.start_date, pj.jobs?.end_date),
+        employmentType: pj.jobs?.employment_type || null,
+        summary: v.summary || null,
         bullets: v.bullets || [],
       }));
 
     return {
       id: pj.job_id,
-      label: pj.jobs?.title || 'Role',
+      label: pj.jobs?.role || pj.jobs?.title || 'Role',
       enabled: pj.enabled,
       variants,
       selectedVariant: pj.selected_variant || 0,
