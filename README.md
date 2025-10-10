@@ -70,6 +70,94 @@ Notes:
 - The workflow sets `VITE_N8N_WEBHOOK_URL`, `VITE_N8N_WEBHOOK_SECRET`, and `VITE_ASSUME_SUCCESS_ON_OPAQUE` during the build.
 - The custom domain `josiah.ledua.ca` is persisted via `public/CNAME`.
 - All `VITE_*` variables are public in the client bundle; keep real security on the n8n side (CORS, token checks, rate limiting).
+
+## Jobs data from Supabase
+
+This repo includes a small data access layer to fetch Job Info from a Supabase database.
+
+Files:
+- `src/services/supabaseClient.js` — initializes the browser Supabase client using Vite env vars.
+- `src/services/jobsService.js` — functions to read/write jobs (getJobs, getJobById, createJob, updateJob, deleteJob).
+
+Environment setup (copy and edit `.env.example`):
+
+```
+VITE_SUPABASE_URL=https://YOUR-PROJECT-REF.supabase.co
+VITE_SUPABASE_ANON_KEY=YOUR_PUBLIC_ANON_KEY
+```
+
+Suggested `jobs` table schema (SQL):
+
+```
+create table if not exists public.jobs (
+	id uuid primary key default gen_random_uuid(),
+	title text not null,
+	company text not null,
+	location text,
+	start_date date not null,
+	end_date date,
+	description text,
+	bullets text[], -- or use jsonb for richer structure
+	created_at timestamptz not null default now()
+);
+```
+
+Example usage in a component:
+
+```js
+import { useEffect, useState } from 'react';
+import { getJobs } from './src/services/jobsService';
+
+export default function ExampleJobs() {
+	const [jobs, setJobs] = useState([]);
+	const [error, setError] = useState(null);
+
+	useEffect(() => {
+		(async () => {
+			try {
+				const data = await getJobs({ limit: 10 });
+				setJobs(data);
+			} catch (e) {
+				setError(e.message);
+			}
+		})();
+	}, []);
+
+	if (error) return <div>Error: {error}</div>;
+	return (
+		<ul>
+			{jobs.map(j => (
+				<li key={j.id}>{j.title} · {j.company}</li>
+			))}
+		</ul>
+	);
+}
+```
+
+Note: If you want anonymous reads on production, add a Row Level Security policy to allow `select` on `public.jobs` for `anon` role.
+
+### Presets linked to jobs
+
+SQL files are provided in `supabase/` to store presets and link them to jobs, variants, and skills:
+
+- `supabase/schema_presets.sql` — tables: `presets`, `job_variants`, `preset_jobs`, optional `skill_groups`, `skills`, `preset_skills`. Includes public read RLS policies.
+- `supabase/seed_presets.sql` — example data mirroring the in-code presets.
+
+How to run (in Supabase SQL editor):
+
+1) Paste and run `schema_presets.sql`.
+2) Paste and run `seed_presets.sql` (or adapt with your real jobs before running).
+
+Using from the app:
+
+```js
+import { listPresets, getPreset } from './src/services/presetsService';
+
+const presets = await listPresets();
+const presetId = presets[0]?.id;
+const uiState = await getPreset(presetId);
+// uiState matches the shape used by ResumeBuilderPage: { options, summaryVariant, experiences, skills }
+```
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

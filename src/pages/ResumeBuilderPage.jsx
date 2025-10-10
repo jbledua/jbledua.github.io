@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Section from '../components/Section.jsx';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
@@ -18,6 +18,7 @@ import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 import Paper from '@mui/material/Paper';
 import { Download, Tune } from '@mui/icons-material';
+import { listPresets, getPreset } from '../services/presetsService.js';
 
 // Temporary hard-coded resume data. Later, fetch from Supabase.
 const PROFILE_IMG = '/images/profile.jpg';
@@ -43,7 +44,7 @@ const BASE_DATA = {
     {
       id: 'role-1',
       label: 'Role 1',
-      enabled: true,
+      enabled: false,
       variants: [
         {
           title: 'Senior Software Engineer · Acme Co',
@@ -168,6 +169,8 @@ export default function ResumeBuilderPage() {
   const [state, setState] = useState(() => PRESET_V1(structuredClone(BASE_DATA)));
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [summaryVariant, setSummaryVariant] = useState(0);
+  const [presets, setPresets] = useState([]);
+  const [loading, setLoading] = useState(false);
   const printRef = useRef(null);
 
   const experiencesToShow = useMemo(() => state.experiences.filter((e) => e.enabled), [state.experiences]);
@@ -185,6 +188,54 @@ export default function ResumeBuilderPage() {
     const fresh = preset(structuredClone(BASE_DATA));
     setState(fresh);
     setSummaryVariant(preset === PRESET_V1 ? 0 : 1);
+  };
+
+  // Load presets from Supabase on mount; fallback to local presets if none/failed
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const list = await listPresets();
+        if (cancelled) return;
+        setPresets(list || []);
+        if (list && list.length) {
+          const ui = await getPreset(list[0].id);
+          if (cancelled) return;
+          // Map the fetched preset to the component state shape
+          setState({
+            options: { includePhoto: !!ui.options?.includePhoto },
+            experiences: ui.experiences || [],
+            skills: ui.skills || {},
+          });
+          setSummaryVariant(Number(ui.summaryVariant ?? 0));
+        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('Failed to load presets from Supabase, using local presets instead:', e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const applyPresetFromDb = async (presetId) => {
+    try {
+      setLoading(true);
+      const ui = await getPreset(presetId);
+      setState({
+        options: { includePhoto: !!ui.options?.includePhoto },
+        experiences: ui.experiences || [],
+        skills: ui.skills || {},
+      });
+      setSummaryVariant(Number(ui.summaryVariant ?? 0));
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to apply preset from Supabase:', e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDownload = () => {
@@ -230,8 +281,18 @@ export default function ResumeBuilderPage() {
       {/* Top controls */}
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
         <Stack direction="row" spacing={1}>
-          <Button variant="contained" onClick={() => applyPreset(PRESET_V1)}>Version 1</Button>
-          <Button variant="contained" onClick={() => applyPreset(PRESET_V2)}>Version 2</Button>
+          {presets && presets.length > 0 ? (
+            presets.map((p) => (
+              <Button key={p.id} variant="contained" disabled={loading} onClick={() => applyPresetFromDb(p.id)}>
+                {p.name}
+              </Button>
+            ))
+          ) : (
+            <>
+              <Button variant="contained" onClick={() => applyPreset(PRESET_V1)}>Version 1</Button>
+              <Button variant="contained" onClick={() => applyPreset(PRESET_V2)}>Version 2</Button>
+            </>
+          )}
           <Button variant="outlined" onClick={() => setDrawerOpen(true)} startIcon={<Tune />}>Custom</Button>
         </Stack>
         <Tooltip title="Download PDF">
@@ -300,7 +361,15 @@ export default function ResumeBuilderPage() {
       </Paper>
 
       {/* Customization Drawer */}
-      <Drawer anchor="left" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+      <Drawer 
+        anchor="left" 
+        open={drawerOpen} 
+        onClose={() => setDrawerOpen(false)}
+        ModalProps={{
+          keepMounted: false,
+        }}
+        >
+      
         <Box sx={{ width: 320, p: 2 }}>
           <Typography variant="h6" gutterBottom>Options</Typography>
 
