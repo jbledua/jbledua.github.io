@@ -389,11 +389,23 @@ select gen_random_uuid(), p.id, e.education_id,
   e.pos
 from public.presets p cross join ranked_edu e;
 
--- Seed example certificates
+-- Seed certificates (real data)
+-- Remove previous example rows if they exist
+delete from public.preset_certificates
+where certificate_id in (
+  select id from public.certificates
+  where name in ('Google IT Support Professional Certificate','AWS Cloud Practitioner (practice)')
+);
+
+delete from public.certificates
+where name in ('Google IT Support Professional Certificate','AWS Cloud Practitioner (practice)');
+
 insert into public.certificates (id, name, issuer, issue_date, expiration_date, credential_id, credential_url, description, tags)
 values
-  (gen_random_uuid(), 'Google IT Support Professional Certificate', 'Coursera', '2020-06-01', null, null, null, 'Foundational IT support concepts', array['IT','Support']),
-  (gen_random_uuid(), 'AWS Cloud Practitioner (practice)', 'Self-study', '2024-01-01', null, null, null, 'Self-study track', array['Cloud','AWS']);
+  (gen_random_uuid(), 'Aerial Work Platforms - Scissor & Boom Lift', 'FSN Safety Training', '2021-07-01', null, null, null, null, array[]::text[]),
+  (gen_random_uuid(), 'Working at Heights', 'Workers Health & Safety Centre', '2021-07-01', '2024-07-01', null, null, null, array[]::text[]),
+  (gen_random_uuid(), 'Forklift Operator - Sit Down Counter Balance', 'Equipment World Inc.', '2019-04-01', '2021-04-01', null, null, null, array[]::text[]),
+  (gen_random_uuid(), 'Cisco Industrial Networking Specialist', 'Cisco', '2016-01-01', '2018-01-01', null, null, null, array[]::text[]);
 
 -- Link certificates to presets with simple ordering
 with ranked_cert as (
