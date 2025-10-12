@@ -7,7 +7,7 @@ import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import Divider from '@mui/material/Divider';
-import Drawer from '@mui/material/Drawer';
+// Drawer moved to AppShell via global provider
 import FormGroup from '@mui/material/FormGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
@@ -19,6 +19,7 @@ import FormControl from '@mui/material/FormControl';
 import Paper from '@mui/material/Paper';
 import { Download, Tune } from '@mui/icons-material';
 import { listPresets, getPreset } from '../services/presetsService.js';
+import { useDrawer } from '../components/DrawerContext.jsx';
 
 // Temporary hard-coded resume data. Later, fetch from Supabase.
 const PROFILE_IMG = '/images/profile.jpg';
@@ -167,11 +168,11 @@ const PRESET_V2 = (data) => ({
 
 export default function ResumeBuilderPage() {
   const [state, setState] = useState(() => PRESET_V1(structuredClone(BASE_DATA)));
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [summaryVariant, setSummaryVariant] = useState(0);
   const [presets, setPresets] = useState([]);
   const [loading, setLoading] = useState(false);
   const printRef = useRef(null);
+  const { open, openDrawer, closeDrawer, toggleDrawer, setContent } = useDrawer();
 
   const experiencesToShow = useMemo(() => state.experiences.filter((e) => e.enabled), [state.experiences]);
   const educationToShow = useMemo(() => (state.education || []).filter((e) => e.enabled), [state.education]);
@@ -285,6 +286,84 @@ export default function ResumeBuilderPage() {
   };
   const toggleIncludePhoto = () => setState((s) => ({ ...s, options: { ...s.options, includePhoto: !s.options.includePhoto } }));
 
+  const drawerContent = useMemo(() => (
+    <Box sx={{ width: 320, p: 2 }}>
+      <Typography variant="h6" gutterBottom>Options</Typography>
+
+      <FormGroup sx={{ mb: 2 }}>
+        <FormControlLabel control={<Checkbox checked={state.options.includePhoto} onChange={toggleIncludePhoto} />} label="Include photo" />
+      </FormGroup>
+
+      <Divider sx={{ my: 1 }} />
+      <Typography variant="subtitle1" gutterBottom>Summary</Typography>
+      <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+        <InputLabel id="summary-var">Variant</InputLabel>
+        <Select labelId="summary-var" label="Variant" value={summaryVariant} onChange={(e) => setSummaryVariant(Number(e.target.value))}>
+          {BASE_DATA.summaryVariants.map((_, i) => (
+            <MenuItem key={i} value={i}>Variant {i + 1}</MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      <Divider sx={{ my: 1 }} />
+      <Typography variant="subtitle1" gutterBottom>Experience</Typography>
+      <Stack spacing={2}>
+        {state.experiences.map((e) => (
+          <Box key={e.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}>
+            <FormControlLabel control={<Checkbox checked={e.enabled} onChange={() => toggleRoleEnabled(e.id)} />} label={e.label} />
+            <FormControl fullWidth size="small">
+              <InputLabel id={`${e.id}-var`}>Variant</InputLabel>
+              <Select labelId={`${e.id}-var`} label="Variant" value={e.selectedVariant} onChange={(ev) => updateRoleVariant(e.id, Number(ev.target.value))}>
+                {e.variants.map((_, idx) => (
+                  <MenuItem key={idx} value={idx}>Version {idx + 1}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+        ))}
+      </Stack>
+
+      <Divider sx={{ my: 2 }} />
+      <Typography variant="subtitle1" gutterBottom>Education</Typography>
+      <Stack spacing={2}>
+        {(state.education || []).map((e) => (
+          <Box key={e.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}>
+            <FormControlLabel control={<Checkbox checked={e.enabled} onChange={() => toggleEducationEnabled(e.id)} />} label={e.label} />
+          </Box>
+        ))}
+      </Stack>
+
+      <Divider sx={{ my: 2 }} />
+      <Typography variant="subtitle1" gutterBottom>Certificates</Typography>
+      <Stack spacing={2}>
+        {(state.certificates || []).map((c) => (
+          <Box key={c.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}>
+            <FormControlLabel control={<Checkbox checked={c.enabled} onChange={() => toggleCertificateEnabled(c.id)} />} label={c.label} />
+          </Box>
+        ))}
+      </Stack>
+      <Typography variant="subtitle1" gutterBottom>Skills</Typography>
+      <Stack spacing={1}>
+        {Object.entries(state.skills).map(([group, items]) => (
+          <Box key={group}>
+            <Typography variant="body1" sx={{ fontWeight: 600, mb: 0.5 }}>{group}</Typography>
+            <FormGroup>
+              {items.map((i) => (
+                <FormControlLabel key={i.id} control={<Checkbox checked={i.enabled} onChange={() => toggleSkill(group, i.id)} />} label={i.label} />
+              ))}
+            </FormGroup>
+          </Box>
+        ))}
+      </Stack>
+    </Box>
+  ), [state, summaryVariant]);
+
+  // Keep global drawer content in sync with local state whenever it changes
+  useEffect(() => {
+    setContent(drawerContent);
+    return () => setContent(null);
+  }, [drawerContent, setContent]);
+
   return (
     <Section>
       {/* Print styles to only print the preview card */}
@@ -311,7 +390,13 @@ export default function ResumeBuilderPage() {
               <Button variant="contained" onClick={() => applyPreset(PRESET_V2)}>Version 2</Button>
             </>
           )}
-          <Button variant="outlined" onClick={() => setDrawerOpen(true)} startIcon={<Tune />}>Custom</Button>
+          <Button
+            variant="outlined"
+            onClick={() => toggleDrawer(drawerContent)}
+            startIcon={<Tune />}
+          >
+            Custom
+          </Button>
         </Stack>
         <Tooltip title="Download PDF">
           <IconButton color="primary" onClick={handleDownload} aria-label="Download resume">
@@ -439,87 +524,7 @@ export default function ResumeBuilderPage() {
           )}
         </Box>
       </Paper>
-
-      {/* Customization Drawer */}
-      <Drawer 
-        anchor="left" 
-        open={drawerOpen} 
-        onClose={() => setDrawerOpen(false)}
-        ModalProps={{
-          keepMounted: false,
-        }}
-        >
       
-        <Box sx={{ width: 320, p: 2 }}>
-          <Typography variant="h6" gutterBottom>Options</Typography>
-
-          <FormGroup sx={{ mb: 2 }}>
-            <FormControlLabel control={<Checkbox checked={state.options.includePhoto} onChange={toggleIncludePhoto} />} label="Include photo" />
-          </FormGroup>
-
-          <Divider sx={{ my: 1 }} />
-          <Typography variant="subtitle1" gutterBottom>Summary</Typography>
-          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-            <InputLabel id="summary-var">Variant</InputLabel>
-            <Select labelId="summary-var" label="Variant" value={summaryVariant} onChange={(e) => setSummaryVariant(Number(e.target.value))}>
-              {BASE_DATA.summaryVariants.map((_, i) => (
-                <MenuItem key={i} value={i}>Variant {i + 1}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <Divider sx={{ my: 1 }} />
-          <Typography variant="subtitle1" gutterBottom>Experience</Typography>
-          <Stack spacing={2}>
-            {state.experiences.map((e) => (
-              <Box key={e.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}>
-                <FormControlLabel control={<Checkbox checked={e.enabled} onChange={() => toggleRoleEnabled(e.id)} />} label={e.label} />
-                <FormControl fullWidth size="small">
-                  <InputLabel id={`${e.id}-var`}>Variant</InputLabel>
-                  <Select labelId={`${e.id}-var`} label="Variant" value={e.selectedVariant} onChange={(ev) => updateRoleVariant(e.id, Number(ev.target.value))}>
-                    {e.variants.map((_, idx) => (
-                      <MenuItem key={idx} value={idx}>Version {idx + 1}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Box>
-            ))}
-          </Stack>
-
-          <Divider sx={{ my: 2 }} />
-          <Typography variant="subtitle1" gutterBottom>Education</Typography>
-          <Stack spacing={2}>
-            {(state.education || []).map((e) => (
-              <Box key={e.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}>
-                <FormControlLabel control={<Checkbox checked={e.enabled} onChange={() => toggleEducationEnabled(e.id)} />} label={e.label} />
-              </Box>
-            ))}
-          </Stack>
-
-          <Divider sx={{ my: 2 }} />
-          <Typography variant="subtitle1" gutterBottom>Certificates</Typography>
-          <Stack spacing={2}>
-            {(state.certificates || []).map((c) => (
-              <Box key={c.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}>
-                <FormControlLabel control={<Checkbox checked={c.enabled} onChange={() => toggleCertificateEnabled(c.id)} />} label={c.label} />
-              </Box>
-            ))}
-          </Stack>
-          <Typography variant="subtitle1" gutterBottom>Skills</Typography>
-          <Stack spacing={1}>
-            {Object.entries(state.skills).map(([group, items]) => (
-              <Box key={group}>
-                <Typography variant="body1" sx={{ fontWeight: 600, mb: 0.5 }}>{group}</Typography>
-                <FormGroup>
-                  {items.map((i) => (
-                    <FormControlLabel key={i.id} control={<Checkbox checked={i.enabled} onChange={() => toggleSkill(group, i.id)} />} label={i.label} />
-                  ))}
-                </FormGroup>
-              </Box>
-            ))}
-          </Stack>
-        </Box>
-      </Drawer>
     </Section>
   );
 }
