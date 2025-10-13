@@ -44,6 +44,16 @@ create table if not exists public.presets (
   created_at timestamptz not null default now()
 );
 
+-- preset_summaries: per-preset resume summary variants (points and/or paragraphs)
+create table if not exists public.preset_summaries (
+  id uuid primary key default gen_random_uuid(),
+  preset_id uuid not null references public.presets(id) on delete cascade,
+  variant_index int2 not null default 0,
+  points text[] not null default '{}',      -- bulleted form
+  paragraphs text[] not null default '{}',  -- paragraph form (one or multiple)
+  unique(preset_id, variant_index)
+);
+
 -- job_variants: per-job text variants (title and bullets)
 -- You can store alternative phrasing for the same job
 create table if not exists public.job_variants (
@@ -167,6 +177,7 @@ create table if not exists public.preset_certificates (
 alter table public.presets enable row level security;
 alter table public.job_variants enable row level security;
 alter table public.preset_jobs enable row level security;
+alter table public.preset_summaries enable row level security;
 alter table public.skill_groups enable row level security;
 alter table public.skills enable row level security;
 alter table public.preset_skills enable row level security;
@@ -186,6 +197,9 @@ create policy "job_variants_public_read" on public.job_variants for select using
 
 drop policy if exists "preset_jobs_public_read" on public.preset_jobs;
 create policy "preset_jobs_public_read" on public.preset_jobs for select using (true);
+
+drop policy if exists "preset_summaries_public_read" on public.preset_summaries;
+create policy "preset_summaries_public_read" on public.preset_summaries for select using (true);
 
 drop policy if exists "skill_groups_public_read" on public.skill_groups;
 create policy "skill_groups_public_read" on public.skill_groups for select using (true);

@@ -15,9 +15,10 @@ values
 insert into public.preset_jobs (id, preset_id, job_id, enabled, selected_variant, position)
 select gen_random_uuid(), p.id, j.id, true, 10, x.pos
 from public.presets p
-join public.jobs j on (j.title, j.company) in (('Information Technology Lead','NorthWind Family Ministries'),
-                                               ('Owner','Backslash Designs'),
-                                               ('Freelance Information Technology Consultant','Freelance'))
+join public.jobs j on (j.title, j.company) in (
+  ('Information Technology Lead','NorthWind Family Ministries'),
+  ('Owner','Backslash Designs'),
+  ('Freelance Information Technology Consultant','Freelance'))
 join (values
   ('Information Technology Lead','NorthWind Family Ministries', 0),
   ('Owner','Backslash Designs', 1),
@@ -29,8 +30,9 @@ where p.name = 'IT Systems Administrator';
 insert into public.preset_jobs (id, preset_id, job_id, enabled, selected_variant, position)
 select gen_random_uuid(), p.id, j.id, true, 11, x.pos
 from public.presets p
-join public.jobs j on (j.title, j.company) in (('Owner','Backslash Designs'),
-                                               ('Information Technology Lead','NorthWind Family Ministries'))
+join public.jobs j on (j.title, j.company) in (
+  ('Owner','Backslash Designs'),
+  ('Information Technology Lead','NorthWind Family Ministries'))
 join (values
   ('Owner','Backslash Designs', 0),
   ('Information Technology Lead','NorthWind Family Ministries', 1)
@@ -41,9 +43,10 @@ where p.name = 'DevOps';
 insert into public.preset_jobs (id, preset_id, job_id, enabled, selected_variant, position)
 select gen_random_uuid(), p.id, j.id, true, 12, x.pos
 from public.presets p
-join public.jobs j on (j.title, j.company) in (('Owner','Backslash Designs'),
-                                               ('Summer Intern - Dunlap Institute for Astronomy & Astrophysics','University of Toronto'),
-                                               ('Research Assistant','Lakehead University'))
+join public.jobs j on (j.title, j.company) in (
+  ('Owner','Backslash Designs'),
+  ('Summer Intern - Dunlap Institute for Astronomy & Astrophysics','University of Toronto'),
+  ('Research Assistant','Lakehead University'))
 join (values
   ('Owner','Backslash Designs', 0),
   ('Summer Intern - Dunlap Institute for Astronomy & Astrophysics','University of Toronto', 1),
@@ -62,8 +65,9 @@ where p.name = 'Game Systems';
 insert into public.preset_jobs (id, preset_id, job_id, enabled, selected_variant, position)
 select gen_random_uuid(), p.id, j.id, true, 14, x.pos
 from public.presets p
-join public.jobs j on (j.title, j.company) in (('Owner','Backslash Designs'),
-                                               ('Freelance Information Technology Consultant','Freelance'))
+join public.jobs j on (j.title, j.company) in (
+  ('Owner','Backslash Designs'),
+  ('Freelance Information Technology Consultant','Freelance'))
 join (values
   ('Owner','Backslash Designs', 0),
   ('Freelance Information Technology Consultant','Freelance', 1)

@@ -8,3 +8,4 @@
 \i 'seed_skills.sql'
 \i 'seed_projects.sql'
 \i 'seed_presets_links.sql'
+\i 'seed_summaries.sql'

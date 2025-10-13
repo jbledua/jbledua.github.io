@@ -20,6 +20,14 @@ export async function getPreset(presetId) {
     .single();
   if (pErr) throw pErr;
 
+  // Fetch summary variants for this preset
+  const { data: summaries, error: sErr } = await supabase
+    .from('preset_summaries')
+    .select('variant_index, points, paragraphs')
+    .eq('preset_id', presetId)
+    .order('variant_index', { ascending: true });
+  if (sErr) throw sErr;
+
   // Fetch jobs linked to this preset with ordering
   const { data: presetJobs, error: pjErr } = await supabase
     .from('preset_jobs')
@@ -135,6 +143,16 @@ export async function getPreset(presetId) {
   return {
     options: { includePhoto: !!preset.include_photo },
     summaryVariant: preset.summary_variant || 0,
+    summaryByVariant: (summaries || []).map((s) => ({
+      points: s.points || [],
+      paragraphs: s.paragraphs || [],
+    })),
+    // Backward-compatible alias for current UI (uses bullet/point naming)
+    summaryVariants: (summaries || []).map((s) => ({
+      bulletLines: s.points || [],
+      pointLines: s.points || [],
+      paragraphs: s.paragraphs || [],
+    })),
     experiences,
     skills,
     education,

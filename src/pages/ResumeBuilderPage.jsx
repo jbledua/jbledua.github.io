@@ -18,159 +18,31 @@ import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 import Paper from '@mui/material/Paper';
 import { Download, Tune } from '@mui/icons-material';
+import Alert from '@mui/material/Alert';
 import { listPresets, getPreset } from '../services/presetsService.js';
 import { useDrawer } from '../components/DrawerContext.jsx';
 
-// Temporary hard-coded resume data. Later, fetch from Supabase.
+// Static identity assets (can be moved to DB later if desired)
 const PROFILE_IMG = '/images/profile.jpg';
 const NAME = 'Josiah Ledua';
 
-const BASE_DATA = {
-  options: {
-    includePhoto: true,
-  },
-  summaryVariants: [
-    [
-      'Full‑stack engineer focused on shipping pragmatic, user-centric solutions.',
-      'Experienced across frontend (React), backend (Node), and cloud tooling.',
-      'Comfortable leading projects end‑to‑end and collaborating with cross‑functional teams.',
-    ],
-    [
-      'Frontend‑leaning engineer specializing in interfaces, performance, and DX.',
-      'Deep experience with React, component systems, and design tokens.',
-      'Bias toward maintainable code, accessibility, and measurable outcomes.',
-    ],
-  ],
-  experiences: [
-    {
-      id: 'role-1',
-      label: 'Role 1',
-      enabled: false,
-      variants: [
-        {
-          title: 'Senior Software Engineer · Acme Co',
-          period: '2022 — Present',
-          bullets: [
-            'Led migration from CRA to Vite, cutting build times by 70% and improving DX.',
-            'Designed typed API layer and query caching that reduced redundant requests by 60%.',
-            'Mentored 3 engineers; introduced lightweight RFC process and preview deployments.',
-          ],
-        },
-        {
-          title: 'Senior Frontend Engineer · Acme Co',
-          period: '2022 — Present',
-          bullets: [
-            'Built component library and tokens; enabled rapid theming across 4 products.',
-            'Implemented critical rendering path optimizations; improved LCP by ~35%.',
-            'Partnered with design to roll out a11y checklist and CI linting rules.',
-          ],
-        },
-      ],
-      selectedVariant: 0,
-    },
-    {
-      id: 'role-2',
-      label: 'Role 2',
-      enabled: true,
-      variants: [
-        {
-          title: 'Software Engineer · Startup XYZ',
-          period: '2020 — 2022',
-          bullets: [
-            'Delivered features across Node/Express and React; 0 to 1 marketplace launch.',
-            'Introduced telemetry and product analytics; informed roadmap prioritization.',
-            'Containerized services and added preview environments via GitHub Actions.',
-          ],
-        },
-        {
-          title: 'Backend Engineer · Startup XYZ',
-          period: '2020 — 2022',
-          bullets: [
-            'Designed Postgres schema and migration process; reduced query latency 40%.',
-            'Implemented rate‑limited public API with robust observability.',
-            'Automated backups and DR drills; improved recovery RTO to < 10 minutes.',
-          ],
-        },
-      ],
-      selectedVariant: 0,
-    },
-    {
-      id: 'role-3',
-      label: 'Role 3',
-      enabled: false,
-      variants: [
-        {
-          title: 'Intern · Helpful Org',
-          period: '2019 — 2020',
-          bullets: [
-            'Prototyped internal tools, saving support team 10+ hours/month.',
-            'Wrote scripts that automated data cleanup and export workflows.',
-          ],
-        },
-        {
-          title: 'Intern · Helpful Org (Product‑focused)',
-          period: '2019 — 2020',
-          bullets: [
-            'Conducted user interviews and created wireframes for admin UX revamp.',
-            'Presented insights leading to a simplified onboarding experience.',
-          ],
-        },
-      ],
-      selectedVariant: 0,
-    },
-  ],
-  skills: {
-    Languages: [
-      { id: 'ts', label: 'TypeScript', enabled: true },
-      { id: 'py', label: 'Python', enabled: true },
-      { id: 'sql', label: 'SQL', enabled: true },
-    ],
-    Frameworks: [
-      { id: 'react', label: 'React', enabled: true },
-      { id: 'node', label: 'Node.js', enabled: true },
-      { id: 'mui', label: 'MUI', enabled: true },
-    ],
-    Tools: [
-      { id: 'git', label: 'Git/GitHub', enabled: true },
-      { id: 'docker', label: 'Docker', enabled: false },
-      { id: 'actions', label: 'GitHub Actions', enabled: false },
-    ],
-  },
-};
-
-const PRESET_V1 = (data) => ({
-  ...data,
-  options: { includePhoto: true },
-  experiences: data.experiences.map((e, i) => ({
-    ...e,
-    enabled: i < 2, // first two
-    selectedVariant: 0,
-  })),
-  skills: {
-    ...data.skills,
-    Tools: data.skills.Tools.map((t) => ({ ...t, enabled: t.id !== 'docker' ? true : false })),
-  },
-});
-
-const PRESET_V2 = (data) => ({
-  ...data,
-  options: { includePhoto: false },
-  experiences: data.experiences.map((e) => ({
-    ...e,
-    enabled: e.id !== 'role-3',
-    selectedVariant: 1,
-  })),
-  skills: {
-    ...data.skills,
-    Tools: data.skills.Tools.map((t) => ({ ...t, enabled: t.id !== 'actions' ? false : true })),
-  },
-});
-
 export default function ResumeBuilderPage() {
-  const [state, setState] = useState(() => PRESET_V1(structuredClone(BASE_DATA)));
+  // UI state sourced from DB; start empty and show graceful messages
+  const [state, setState] = useState({
+    options: { includePhoto: true },
+    summaryLines: [], // bullet form
+    summaryParagraphs: [], // paragraph form
+    experiences: [],
+    skills: {},
+    education: [],
+    certificates: [],
+  });
   const [summaryVariant, setSummaryVariant] = useState(0);
+  const [summaryVariants, setSummaryVariants] = useState([]); // [{ bulletLines:[], pointLines:[], paragraphs:[] }, ...]
+  const [summaryFormat, setSummaryFormat] = useState('bullet'); // 'bullet' | 'paragraph'
   const [presets, setPresets] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const printRef = useRef(null);
   const { open, openDrawer, closeDrawer, toggleDrawer, setContent } = useDrawer();
 
@@ -187,13 +59,9 @@ export default function ResumeBuilderPage() {
     return res;
   }, [state.skills]);
 
-  const applyPreset = (preset) => {
-    const fresh = preset(structuredClone(BASE_DATA));
-    setState(fresh);
-    setSummaryVariant(preset === PRESET_V1 ? 0 : 1);
-  };
+  // No local fallback presets. We only use data from the database.
 
-  // Load presets from Supabase on mount; fallback to local presets if none/failed
+  // Load presets from Supabase on mount; show empty/error states on failure or no data
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -206,18 +74,33 @@ export default function ResumeBuilderPage() {
           const ui = await getPreset(list[0].id);
           if (cancelled) return;
           // Map the fetched preset to the component state shape
+          // Derive initial summary lines based on variant and default format
+          const variants = ui.summaryVariants || [];
+          const initialVariantIdx = Number(ui.summaryVariant ?? 0);
+          const hasBullets = (variants[initialVariantIdx]?.bulletLines || []).length > 0;
+          const hasParagraphs = (variants[initialVariantIdx]?.paragraphs || []).length > 0;
+          const preferredFormat = hasBullets ? 'bullet' : (hasParagraphs ? 'paragraph' : 'bullet');
+          const initialLines = preferredFormat === 'bullet' ? (variants[initialVariantIdx]?.bulletLines || []) : [];
+          const initialParagraphs = preferredFormat === 'paragraph' ? (variants[initialVariantIdx]?.paragraphs || []) : [];
+
           setState({
             options: { includePhoto: !!ui.options?.includePhoto },
+            summaryLines: initialLines,
+            summaryParagraphs: initialParagraphs,
             experiences: ui.experiences || [],
             skills: ui.skills || {},
             education: ui.education || [],
             certificates: ui.certificates || [],
           });
-          setSummaryVariant(Number(ui.summaryVariant ?? 0));
+          setSummaryVariant(initialVariantIdx);
+          setSummaryVariants(variants);
+          setSummaryFormat(preferredFormat);
+        } else {
+          // No presets in DB; keep empty state
+          setState((s) => ({ ...s, experiences: [], skills: {}, education: [], certificates: [] }));
         }
       } catch (e) {
-        // eslint-disable-next-line no-console
-        console.warn('Failed to load presets from Supabase, using local presets instead:', e);
+        setError(e);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -229,14 +112,25 @@ export default function ResumeBuilderPage() {
     try {
       setLoading(true);
       const ui = await getPreset(presetId);
+      const variants = ui.summaryVariants || [];
+      const initialVariantIdx = Number(ui.summaryVariant ?? 0);
+      const hasBullets = (variants[initialVariantIdx]?.bulletLines || []).length > 0;
+      const hasParagraphs = (variants[initialVariantIdx]?.paragraphs || []).length > 0;
+      const preferredFormat = hasBullets ? 'bullet' : (hasParagraphs ? 'paragraph' : 'bullet');
+      const initialLines = preferredFormat === 'bullet' ? (variants[initialVariantIdx]?.bulletLines || []) : [];
+      const initialParagraphs = preferredFormat === 'paragraph' ? (variants[initialVariantIdx]?.paragraphs || []) : [];
       setState({
         options: { includePhoto: !!ui.options?.includePhoto },
+        summaryLines: initialLines,
+        summaryParagraphs: initialParagraphs,
         experiences: ui.experiences || [],
         skills: ui.skills || {},
         education: ui.education || [],
         certificates: ui.certificates || [],
       });
-      setSummaryVariant(Number(ui.summaryVariant ?? 0));
+      setSummaryVariant(initialVariantIdx);
+      setSummaryVariants(variants);
+      setSummaryFormat(preferredFormat);
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('Failed to apply preset from Supabase:', e);
@@ -294,14 +188,46 @@ export default function ResumeBuilderPage() {
         <FormControlLabel control={<Checkbox checked={state.options.includePhoto} onChange={toggleIncludePhoto} />} label="Include photo" />
       </FormGroup>
 
-      <Divider sx={{ my: 1 }} />
-      <Typography variant="subtitle1" gutterBottom>Summary</Typography>
       <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-        <InputLabel id="summary-var">Variant</InputLabel>
-        <Select labelId="summary-var" label="Variant" value={summaryVariant} onChange={(e) => setSummaryVariant(Number(e.target.value))}>
-          {BASE_DATA.summaryVariants.map((_, i) => (
-            <MenuItem key={i} value={i}>Variant {i + 1}</MenuItem>
+        <InputLabel id="summary-variant">Summary Variant</InputLabel>
+        <Select
+          labelId="summary-variant"
+          label="Summary Variant"
+          value={summaryVariant}
+          onChange={(ev) => {
+            const idx = Number(ev.target.value);
+            setSummaryVariant(idx);
+            setState((s) => ({
+              ...s,
+              summaryLines: (summaryFormat === 'bullet' ? (summaryVariants[idx]?.bulletLines || []) : s.summaryLines),
+              summaryParagraphs: (summaryFormat === 'paragraph' ? (summaryVariants[idx]?.paragraphs || []) : s.summaryParagraphs),
+            }));
+          }}
+        >
+          {(summaryVariants || []).map((_, idx) => (
+            <MenuItem key={idx} value={idx}>Summary {idx + 1}</MenuItem>
           ))}
+        </Select>
+      </FormControl>
+
+      <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+        <InputLabel id="summary-format">Summary Format</InputLabel>
+        <Select
+          labelId="summary-format"
+          label="Summary Format"
+          value={summaryFormat}
+          onChange={(ev) => {
+            const fmt = ev.target.value;
+            setSummaryFormat(fmt);
+            setState((s) => ({
+              ...s,
+              summaryLines: (fmt === 'bullet' ? (summaryVariants[summaryVariant]?.bulletLines || []) : []),
+              summaryParagraphs: (fmt === 'paragraph' ? (summaryVariants[summaryVariant]?.paragraphs || []) : []),
+            }));
+          }}
+        >
+          <MenuItem value="bullet">Bulleted</MenuItem>
+          <MenuItem value="paragraph">Paragraph</MenuItem>
         </Select>
       </FormControl>
 
@@ -356,7 +282,7 @@ export default function ResumeBuilderPage() {
         ))}
       </Stack>
     </Box>
-  ), [state, summaryVariant]);
+  ), [state, summaryVariant, summaryFormat, summaryVariants]);
 
   // Keep global drawer content in sync with local state whenever it changes
   useEffect(() => {
@@ -384,11 +310,11 @@ export default function ResumeBuilderPage() {
                 {p.name}
               </Button>
             ))
-          ) : (
-            <>
-              <Button variant="contained" onClick={() => applyPreset(PRESET_V1)}>Version 1</Button>
-              <Button variant="contained" onClick={() => applyPreset(PRESET_V2)}>Version 2</Button>
-            </>
+          ) : null}
+          {!loading && presets.length === 0 && (
+            <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center', ml: 1 }}>
+              No presets found.
+            </Typography>
           )}
           <Button
             variant="outlined"
@@ -417,20 +343,47 @@ export default function ResumeBuilderPage() {
             )}
             <Box sx={{ flex: 1 }}>
               <Typography variant="h4" gutterBottom>{NAME}</Typography>
-              <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
-                {BASE_DATA.summaryVariants[summaryVariant].map((s, i) => (
-                  <li key={i}><Typography variant="body1">{s}</Typography></li>
-                ))}
-              </ul>
+              {summaryFormat === 'paragraph' ? (
+                (state.summaryParagraphs && state.summaryParagraphs.length > 0 ? (
+                  <Stack spacing={1}>
+                    {state.summaryParagraphs.map((p, i) => (
+                      <Typography key={i} variant="body1">{p}</Typography>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">No summary provided.</Typography>
+                ))
+              ) : (
+                state.summaryLines && state.summaryLines.length > 0 ? (
+                  <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
+                    {state.summaryLines.map((s, i) => (
+                      <li key={i}><Typography variant="body1">{s}</Typography></li>
+                    ))}
+                  </ul>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">No summary provided.</Typography>
+                )
+              )}
             </Box>
           </Stack>
+
+          {!loading && error && (
+            <Box sx={{ mt: 2 }}>
+              <Alert severity="warning">Failed to load data from Supabase. Showing empty state.</Alert>
+            </Box>
+          )}
 
           <Divider sx={{ my: 3 }} />
 
           {/* Experience */}
           <Typography variant="h6" gutterBottom>Experience</Typography>
-          <Stack spacing={2} sx={{ mb: 3 }}>
-            {experiencesToShow.map((e) => {
+          {experiencesToShow.length === 0 ? (
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              No experience to display.
+            </Typography>
+          ) : (
+            <Stack spacing={2} sx={{ mb: 3 }}>
+              {experiencesToShow.map((e) => {
               const v = e.variants[e.selectedVariant] || e.variants[0];
               const meta = [v.period, v.employmentType].filter(Boolean).join(' · ');
               return (
@@ -451,23 +404,28 @@ export default function ResumeBuilderPage() {
                   )}
                 </Box>
               );
-            })}
-          </Stack>
+              })}
+            </Stack>
+          )}
 
           {/* Skills */}
           <Typography variant="h6" gutterBottom>Skills</Typography>
-          <Stack spacing={2}>
-            {skillsToShow.map(({ group, items }) => (
-              <Box key={group}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{group}</Typography>
-                <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: '1.2rem' }}>
-                  {items.map((i) => (
-                    <li key={i.id}><Typography variant="body2">{i.label}</Typography></li>
-                  ))}
-                </ul>
-              </Box>
-            ))}
-          </Stack>
+          {skillsToShow.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">No skills to display.</Typography>
+          ) : (
+            <Stack spacing={2}>
+              {skillsToShow.map(({ group, items }) => (
+                <Box key={group}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{group}</Typography>
+                  <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: '1.2rem' }}>
+                    {items.map((i) => (
+                      <li key={i.id}><Typography variant="body2">{i.label}</Typography></li>
+                    ))}
+                  </ul>
+                </Box>
+              ))}
+            </Stack>
+          )}
 
           {/* Education */}
           {educationToShow.length > 0 && (

@@ -14,6 +14,8 @@ These SQL files were split by domain to make edits safer and clearer. Run them i
    - Inserts projects
 6. seed_presets_links.sql
    - Creates presets and links: preset_jobs, preset_education, preset_certificates, preset_skills, preset_projects
+7. seed_summaries.sql
+   - Inserts summary variants per preset with both formats: points (bulleted) and sentence (paragraph)
 
 Notes
 - The old combined file (seed_presets.sql) is now a placeholder pointing here to avoid double-seeding.
