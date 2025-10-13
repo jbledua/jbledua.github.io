@@ -297,8 +297,15 @@ export default function ResumeBuilderPage() {
       <style>{`
         @media print {
           body * { visibility: hidden; }
+          /* Ensure the Paper wrapper doesn't clip the resume during print */
+          #resume-paper { position: static !important; overflow: visible !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
+          /* Only show the resume print area */
           #resume-print-area, #resume-print-area * { visibility: visible; }
-          #resume-print-area { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; }
+          /* Keep natural flow so content isn't clipped by positioned ancestors */
+          #resume-print-area { position: static !important; left: 0 !important; top: 0 !important; width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
+          /* Allow Experience list to flow across pages instead of being treated as one flex box */
+          #exp-list { display: block !important; }
+          #exp-list > * { page-break-inside: avoid; break-inside: avoid-page; margin-bottom: 16px; }
         }
       `}</style>
 
@@ -333,7 +340,7 @@ export default function ResumeBuilderPage() {
       </Stack>
 
       {/* Canvas grid look like the mock (optional subtle bg) */}
-      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, position: 'relative', overflow: 'hidden' }}>
+      <Paper id="resume-paper" variant="outlined" sx={{ p: { xs: 2, sm: 3 }, position: 'relative', overflow: 'hidden' }}>
         <Box id="resume-print-area" ref={printRef} sx={{ maxWidth: 920, mx: 'auto' }}>
           {/* Header: photo + summary */}
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ xs: 'center', sm: 'flex-start' }}>
@@ -383,7 +390,7 @@ export default function ResumeBuilderPage() {
               No experience to display.
             </Typography>
           ) : (
-            <Stack spacing={2} sx={{ mb: 3 }}>
+            <Stack id="exp-list" spacing={2} sx={{ mb: 3 }}>
               {experiencesToShow.map((e) => {
               const v = e.variants[e.selectedVariant] || e.variants[0];
               const meta = [v.period, v.employmentType].filter(Boolean).join(' · ');
