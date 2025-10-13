@@ -17,6 +17,7 @@ import MenuItem from '@mui/material/MenuItem';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 import Paper from '@mui/material/Paper';
+import Grid from '@mui/material/Grid'
 import { Download, Tune } from '@mui/icons-material';
 import Alert from '@mui/material/Alert';
 import { listPresets, getPreset } from '../services/presetsService.js';
@@ -413,18 +414,20 @@ export default function ResumeBuilderPage() {
           {skillsToShow.length === 0 ? (
             <Typography variant="body2" color="text.secondary">No skills to display.</Typography>
           ) : (
-            <Stack spacing={2}>
+            <Grid container spacing={2}>
               {skillsToShow.map(({ group, items }) => (
-                <Box key={group}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{group}</Typography>
-                  <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: '1.2rem' }}>
-                    {items.map((i) => (
-                      <li key={i.id}><Typography variant="body2">{i.label}</Typography></li>
-                    ))}
-                  </ul>
-                </Box>
+                <Grid key={group} size={{ xs: 12, sm: 6, md: 4 }}>
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{group}</Typography>
+                    <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: '1.2rem' }}>
+                      {items.map((i) => (
+                        <li key={i.id}><Typography variant="body2">{i.label}</Typography></li>
+                      ))}
+                    </ul>
+                  </Box>
+                </Grid>
               ))}
-            </Stack>
+            </Grid>
           )}
 
           {/* Education */}
@@ -432,26 +435,28 @@ export default function ResumeBuilderPage() {
             <>
               <Divider sx={{ my: 3 }} />
               <Typography variant="h6" gutterBottom>Education</Typography>
-              <Stack spacing={2}>
+              <Grid container spacing={2}>
                 {educationToShow.map((e) => (
-                  <Box key={e.id}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{e.label}</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {[e.degree, e.field].filter(Boolean).join(', ')}{(e.degree || e.field) && (e.period ? ' · ' : '')}{e.period}
-                    </Typography>
-                    {e.summary && (
-                      <Typography variant="body2" sx={{ mt: 0.5 }}>{e.summary}</Typography>
-                    )}
-                    {e.bullets?.length > 0 && (
-                      <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: '1.2rem' }}>
-                        {e.bullets.map((b, i) => (
-                          <li key={i}><Typography variant="body2">{b}</Typography></li>
-                        ))}
-                      </ul>
-                    )}
-                  </Box>
+                  <Grid key={e.id} size={{ xs: 12, sm: 6 }}>
+                    <Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{e.label}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {[e.degree, e.field].filter(Boolean).join(', ')}{(e.degree || e.field) && (e.period ? ' · ' : '')}{e.period}
+                      </Typography>
+                      {e.summary && (
+                        <Typography variant="body2" sx={{ mt: 0.5 }}>{e.summary}</Typography>
+                      )}
+                      {e.bullets?.length > 0 && (
+                        <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: '1.2rem' }}>
+                          {e.bullets.map((b, i) => (
+                            <li key={i}><Typography variant="body2">{b}</Typography></li>
+                          ))}
+                        </ul>
+                      )}
+                    </Box>
+                  </Grid>
                 ))}
-              </Stack>
+              </Grid>
             </>
           )}
 
@@ -460,24 +465,26 @@ export default function ResumeBuilderPage() {
             <>
               <Divider sx={{ my: 3 }} />
               <Typography variant="h6" gutterBottom>Certificates</Typography>
-              <Stack spacing={2}>
-                {certificatesToShow.map((c) => (
-                  <Box key={c.id}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{c.label}</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {[c.issuer, c.period].filter(Boolean).join(' · ')}
-                    </Typography>
-                    {c.credentialUrl && (
-                      <Typography variant="body2" sx={{ mt: 0.5 }}>
-                        <a href={c.credentialUrl} target="_blank" rel="noreferrer">View Credential</a>
-                      </Typography>
-                    )}
-                    {c.summary && (
-                      <Typography variant="body2" sx={{ mt: 0.5 }}>{c.summary}</Typography>
-                    )}
-                  </Box>
-                ))}
-              </Stack>
+                <Grid container spacing={2}>
+                  {certificatesToShow.map((c) => (
+                    <Grid key={c.id} size={{ xs: 12, sm: 6 }}>
+                      <Box>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{c.label}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {[c.issuer, c.period].filter(Boolean).join(' · ')}
+                        </Typography>
+                        {c.credentialUrl && (
+                          <Typography variant="body2" sx={{ mt: 0.5 }}>
+                            <a href={c.credentialUrl} target="_blank" rel="noreferrer">View Credential</a>
+                          </Typography>
+                        )}
+                        {c.summary && (
+                          <Typography variant="body2" sx={{ mt: 0.5 }}>{c.summary}</Typography>
+                        )}
+                      </Box>
+                    </Grid>
+                  ))}
+                </Grid>
             </>
           )}
         </Box>
