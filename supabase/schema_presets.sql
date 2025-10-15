@@ -1,229 +1,323 @@
--- Schema for resume presets linked to jobs.
+-- Extensions
+create extension if not exists pgcrypto;       -- gen_random_uuid()
+create extension if not exists pg_trgm;        -- fuzzy search helpers
 
--- Ensure pgcrypto is available for gen_random_uuid()
-create extension if not exists "pgcrypto";
+-- ---------- Helpers ----------
+-- updated_at trigger
+create or replace function set_updated_at() returns trigger language plpgsql as $$
+begin
+  new.updated_at = now();
+  return new;
+end $$;
 
-create table if not exists public.jobs ( 
-    id uuid primary key default gen_random_uuid(), 
-  title text not null, 
-    company text not null, 
-    location text, 
-    start_date date not null, 
-    end_date date,
-    description text,
-    employment_type text, -- e.g., 'Full-time', 'Part-time', 'Contract', 'Internship', 'Freelance'
-    bullets text[], 
-    created_at timestamptz not null default now()
-);
+-- Enums
+do $$
+begin
+  if not exists (select 1 from pg_type where typname = 'job_type') then
+    create type job_type as enum ('full_time','part_time','contract','internship','casual','temporary','volunteer','other');
+  end if;
+  if not exists (select 1 from pg_type where typname = 'post_type') then
+    create type post_type as enum ('blog','email','linkedin','kb','page','other');
+  end if;
+end $$;
 
--- Add a distinct role field for clarity between job role and description
-alter table public.jobs add column if not exists role text;
--- Backfill role from title if empty
-update public.jobs set role = coalesce(role, title) where role is null;
-
--- Basic backfill for employment_type using description keywords if not already set
-update public.jobs
-set employment_type = coalesce(employment_type,
-  case
-    when description ilike '%part-time%' then 'Part-time'
-    when description ilike '%full-time%' then 'Full-time'
-    when description ilike '%contract%' then 'Contract'
-    when description ilike '%intern%' then 'Internship'
-    when description ilike '%freelance%' then 'Freelance'
-    else null
-  end
-)
-where employment_type is null;
-
--- presets: top-level preset definitions
-create table if not exists public.presets (
+-- ---------- Core lookups ----------
+create table if not exists public.locations (
   id uuid primary key default gen_random_uuid(),
-  name text not null,
-  include_photo boolean not null default true,
-  summary_variant int2 not null default 0,
-  created_at timestamptz not null default now()
+  country text not null,
+  region text,      -- province/state
+  city text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
-
--- preset_summaries: per-preset resume summary variants (points and/or paragraphs)
-create table if not exists public.preset_summaries (
-  id uuid primary key default gen_random_uuid(),
-  preset_id uuid not null references public.presets(id) on delete cascade,
-  variant_index int2 not null default 0,
-  points text[] not null default '{}',      -- bulleted form
-  paragraphs text[] not null default '{}',  -- paragraph form (one or multiple)
-  unique(preset_id, variant_index)
-);
-
--- job_variants: per-job text variants (title and bullets)
--- You can store alternative phrasing for the same job
-create table if not exists public.job_variants (
-  id uuid primary key default gen_random_uuid(),
-  job_id uuid not null references public.jobs(id) on delete cascade,
-  variant_index int2 not null default 0,
-  title text not null,
-  summary text, -- optional brief description for this variant
-  bullets text[] not null default '{}',
-  unique(job_id, variant_index)
-);
-
--- preset_jobs: which jobs appear in a preset and which variant to use
-create table if not exists public.preset_jobs (
-  id uuid primary key default gen_random_uuid(),
-  preset_id uuid not null references public.presets(id) on delete cascade,
-  job_id uuid not null references public.jobs(id) on delete cascade,
-  enabled boolean not null default true,
-  selected_variant int2 not null default 0,
-  position int2 not null default 0, -- optional ordering in UI
-  unique(preset_id, job_id)
-);
-
--- Optional: skills tables if you want to store selectable skills too
-create table if not exists public.skill_groups (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  position int2 not null default 0
-);
+create trigger trg_locations_updated_at before update on public.locations
+for each row execute function set_updated_at();
 
 create table if not exists public.skills (
   id uuid primary key default gen_random_uuid(),
-  group_id uuid not null references public.skill_groups(id) on delete cascade,
-  label text not null,
-  position int2 not null default 0
+  name text not null unique,
+  slug text generated always as (lower(regexp_replace(name,'[^a-zA-Z0-9]+','-','g'))) stored,
+  description text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
+create trigger trg_skills_updated_at before update on public.skills
+for each row execute function set_updated_at();
 
-create table if not exists public.preset_skills (
+create table if not exists public.skill_groups (
   id uuid primary key default gen_random_uuid(),
-  preset_id uuid not null references public.presets(id) on delete cascade,
-  skill_id uuid not null references public.skills(id) on delete cascade,
-  enabled boolean not null default true,
-  unique(preset_id, skill_id)
+  name text not null unique,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create trigger trg_skill_groups_updated_at before update on public.skill_groups
+for each row execute function set_updated_at();
+
+create table if not exists public.skill_group_skills (
+  skill_group_id uuid references public.skill_groups(id) on delete cascade,
+  skill_id uuid references public.skills(id) on delete cascade,
+  position int not null default 0,
+  primary key (skill_group_id, skill_id)
 );
 
--- projects: portfolio projects to display on site and include in resume presets
+-- Rich text “Description” blocks (paragraphs + bullets)
+create table if not exists public.descriptions (
+  id uuid primary key default gen_random_uuid(),
+  paragraphs text[] default '{}',
+  bullets text[] default '{}',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create trigger trg_descriptions_updated_at before update on public.descriptions
+for each row execute function set_updated_at();
+
+-- Accounts (links/socials)
+create table if not exists public.accounts (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,                 -- e.g., GitHub, LinkedIn, Website
+  icon text,                          -- icon name or url
+  link text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create trigger trg_accounts_updated_at before update on public.accounts
+for each row execute function set_updated_at();
+
+-- Photos (reference Supabase storage path)
+create table if not exists public.photos (
+  id uuid primary key default gen_random_uuid(),
+  title text,
+  file_path text not null,            -- e.g. 'public/media/xyz.jpg'
+  taken_at timestamptz,
+  alt text,
+  width int,
+  height int,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create unique index if not exists photos_file_path_idx on public.photos(file_path);
+create trigger trg_photos_updated_at before update on public.photos
+for each row execute function set_updated_at();
+
+-- ---------- Jobs / Education / Certificates ----------
+create table if not exists public.jobs (
+  id uuid primary key default gen_random_uuid(),
+  company text not null,
+  role text not null,
+  type job_type not null default 'full_time',
+  location_id uuid references public.locations(id),
+  start_date date not null,
+  end_date date,
+  is_current boolean generated always as (end_date is null) stored,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists jobs_company_idx on public.jobs using gin (company gin_trgm_ops);
+create index if not exists jobs_dates_idx on public.jobs(start_date, end_date);
+create trigger trg_jobs_updated_at before update on public.jobs
+for each row execute function set_updated_at();
+
+-- Array of Description blocks for each Job (ordered)
+create table if not exists public.job_descriptions (
+  job_id uuid references public.jobs(id) on delete cascade,
+  description_id uuid references public.descriptions(id) on delete restrict,
+  position int not null default 0,
+  primary key (job_id, description_id)
+);
+
+-- Related Skills/Projects
 create table if not exists public.projects (
   id uuid primary key default gen_random_uuid(),
-  name text not null,
-  slug text unique,
-  short_description text,
-  description text,
+  title text not null,
+  slug text generated always as (lower(regexp_replace(title,'[^a-zA-Z0-9]+','-','g'))) stored,
+  description_id uuid references public.descriptions(id) on delete set null,
   github_url text,
-  homepage_url text,
-  image_url text,
-  logo_light_url text,
-  logo_dark_url text,
-  tags text[] default '{}',
-  created_at timestamptz not null default now()
+  website_url text,
+  cover_photo_id uuid references public.photos(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists projects_title_idx on public.projects using gin (title gin_trgm_ops);
+create trigger trg_projects_updated_at before update on public.projects
+for each row execute function set_updated_at();
+
+create table if not exists public.project_skills (
+  project_id uuid references public.projects(id) on delete cascade,
+  skill_id uuid references public.skills(id) on delete cascade,
+  position int not null default 0,
+  primary key (project_id, skill_id)
 );
 
--- preset_projects: link selected projects to a preset (ordering + enabled)
-create table if not exists public.preset_projects (
-  id uuid primary key default gen_random_uuid(),
-  preset_id uuid not null references public.presets(id) on delete cascade,
-  project_id uuid not null references public.projects(id) on delete cascade,
-  enabled boolean not null default true,
-  position int2 not null default 0,
-  unique(preset_id, project_id)
+create table if not exists public.job_skills (
+  job_id uuid references public.jobs(id) on delete cascade,
+  skill_id uuid references public.skills(id) on delete cascade,
+  primary key (job_id, skill_id)
 );
 
--- education: academic history
+create table if not exists public.job_projects (
+  job_id uuid references public.jobs(id) on delete cascade,
+  project_id uuid references public.projects(id) on delete cascade,
+  position int not null default 0,
+  primary key (job_id, project_id)
+);
+
 create table if not exists public.education (
   id uuid primary key default gen_random_uuid(),
   school text not null,
-  degree text,
-  field_of_study text,
-  location text,
-  start_date date,
+  degree text not null,              -- Masters, Bachelors, Diploma, etc.
+  major text,
+  location_id uuid references public.locations(id),
+  start_date date not null,
   end_date date,
-  description text,
-  bullets text[] not null default '{}',
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
+create index if not exists education_school_idx on public.education using gin (school gin_trgm_ops);
+create trigger trg_education_updated_at before update on public.education
+for each row execute function set_updated_at();
 
--- preset_education: link selected education entries to a preset
-create table if not exists public.preset_education (
-  id uuid primary key default gen_random_uuid(),
-  preset_id uuid not null references public.presets(id) on delete cascade,
-  education_id uuid not null references public.education(id) on delete cascade,
-  enabled boolean not null default true,
-  position int2 not null default 0,
-  unique(preset_id, education_id)
-);
-
--- certificates: professional certs
 create table if not exists public.certificates (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  issuer text,
-  issue_date date,
-  expiration_date date,
+  issuer text not null,
+  issue_date date not null,
+  expiry_date date,
   credential_id text,
   credential_url text,
-  description text,
-  tags text[] not null default '{}',
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
+create trigger trg_certificates_updated_at before update on public.certificates
+for each row execute function set_updated_at();
 
--- preset_certificates: link certs to a preset
-create table if not exists public.preset_certificates (
+-- ---------- Flexible Tags for Posts ----------
+-- Tag types: values/vendors/technologies/clients (extensible)
+create table if not exists public.tag_types (
   id uuid primary key default gen_random_uuid(),
-  preset_id uuid not null references public.presets(id) on delete cascade,
-  certificate_id uuid not null references public.certificates(id) on delete cascade,
-  enabled boolean not null default true,
-  position int2 not null default 0,
-  unique(preset_id, certificate_id)
+  name text not null unique  -- e.g., 'value','vendor','technology','client'
 );
 
--- RLS
-alter table public.presets enable row level security;
-alter table public.job_variants enable row level security;
-alter table public.preset_jobs enable row level security;
-alter table public.preset_summaries enable row level security;
-alter table public.skill_groups enable row level security;
-alter table public.skills enable row level security;
-alter table public.preset_skills enable row level security;
-alter table public.projects enable row level security;
-alter table public.preset_projects enable row level security;
-alter table public.education enable row level security;
-alter table public.preset_education enable row level security;
-alter table public.certificates enable row level security;
-alter table public.preset_certificates enable row level security;
+insert into public.tag_types (name)
+  values ('value'), ('vendor'), ('technology'), ('client')
+on conflict do nothing;
 
--- Public read policy (if desired for static site)
-drop policy if exists "presets_public_read" on public.presets;
-create policy "presets_public_read" on public.presets for select using (true);
+create table if not exists public.tags (
+  id uuid primary key default gen_random_uuid(),
+  tag_type_id uuid not null references public.tag_types(id) on delete cascade,
+  name text not null,
+  slug text generated always as (lower(regexp_replace(name,'[^a-zA-Z0-9]+','-','g'))) stored,
+  unique (tag_type_id, name)
+);
 
-drop policy if exists "job_variants_public_read" on public.job_variants;
-create policy "job_variants_public_read" on public.job_variants for select using (true);
+-- ---------- Posts (Blog/Email/LinkedIn/etc.) ----------
+create table if not exists public.posts (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  title text not null,
+  cover_photo_id uuid references public.photos(id) on delete set null,
+  summary_description_id uuid references public.descriptions(id) on delete set null,
+  type post_type not null default 'blog',
+  author text not null default 'Josiah Ledua',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  status text not null check (status in ('draft','scheduled','published')) default 'draft',
+  posted boolean not null default false,
+  posted_at timestamptz,
+  emailed boolean not null default false,
+  emailed_at timestamptz,
+  content_md text not null default ''
+);
+create index if not exists posts_title_idx on public.posts using gin (title gin_trgm_ops);
+create index if not exists posts_content_trgm_idx on public.posts using gin (content_md gin_trgm_ops);
+create trigger trg_posts_updated_at before update on public.posts
+for each row execute function set_updated_at();
 
-drop policy if exists "preset_jobs_public_read" on public.preset_jobs;
-create policy "preset_jobs_public_read" on public.preset_jobs for select using (true);
+-- Post relations
+create table if not exists public.post_skills (
+  post_id uuid references public.posts(id) on delete cascade,
+  skill_id uuid references public.skills(id) on delete cascade,
+  primary key (post_id, skill_id)
+);
 
-drop policy if exists "preset_summaries_public_read" on public.preset_summaries;
-create policy "preset_summaries_public_read" on public.preset_summaries for select using (true);
+create table if not exists public.post_tags (
+  post_id uuid references public.posts(id) on delete cascade,
+  tag_id uuid references public.tags(id) on delete cascade,
+  primary key (post_id, tag_id)
+);
 
-drop policy if exists "skill_groups_public_read" on public.skill_groups;
-create policy "skill_groups_public_read" on public.skill_groups for select using (true);
+-- Optional: map posts to client organizations without tags (if you prefer)
+-- Using tags with tag_type 'client' should be enough, but you can add a dedicated table later if needed.
 
-drop policy if exists "skills_public_read" on public.skills;
-create policy "skills_public_read" on public.skills for select using (true);
+-- ---------- Resumes ----------
+create table if not exists public.resumes (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  profile_photo_id uuid references public.photos(id) on delete set null,
+  style jsonb default '{}'::jsonb,                 -- future theming options
+  summary_description_id uuid references public.descriptions(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create trigger trg_resumes_updated_at before update on public.resumes
+for each row execute function set_updated_at();
 
-drop policy if exists "preset_skills_public_read" on public.preset_skills;
-create policy "preset_skills_public_read" on public.preset_skills for select using (true);
+-- Resume contact info (ordered list of Accounts)
+create table if not exists public.resume_accounts (
+  resume_id uuid references public.resumes(id) on delete cascade,
+  account_id uuid references public.accounts(id) on delete cascade,
+  label text,                         -- optional display label override
+  position int not null default 0,
+  primary key (resume_id, account_id)
+);
 
-drop policy if exists "projects_public_read" on public.projects;
-create policy "projects_public_read" on public.projects for select using (true);
+-- Resume Skills (ordered)
+create table if not exists public.resume_skills (
+  resume_id uuid references public.resumes(id) on delete cascade,
+  skill_id uuid references public.skills(id) on delete cascade,
+  position int not null default 0,
+  primary key (resume_id, skill_id)
+);
 
-drop policy if exists "preset_projects_public_read" on public.preset_projects;
-create policy "preset_projects_public_read" on public.preset_projects for select using (true);
+-- Resume Experience = array of Jobs (ordered)
+create table if not exists public.resume_jobs (
+  resume_id uuid references public.resumes(id) on delete cascade,
+  job_id uuid references public.jobs(id) on delete cascade,
+  position int not null default 0,
+  primary key (resume_id, job_id)
+);
 
-drop policy if exists "education_public_read" on public.education;
-create policy "education_public_read" on public.education for select using (true);
+-- Resume Projects (ordered)
+create table if not exists public.resume_projects (
+  resume_id uuid references public.resumes(id) on delete cascade,
+  project_id uuid references public.projects(id) on delete cascade,
+  position int not null default 0,
+  primary key (resume_id, project_id)
+);
 
-drop policy if exists "preset_education_public_read" on public.preset_education;
-create policy "preset_education_public_read" on public.preset_education for select using (true);
+-- ---------- Convenience views (optional) ----------
+-- Posts with publish flags and dates in one row
+create or replace view public.v_posts_published as
+select
+  p.*,
+  (p.status = 'published' and p.posted is true) as is_public
+from public.posts p;
 
-drop policy if exists "certificates_public_read" on public.certificates;
-create policy "certificates_public_read" on public.certificates for select using (true);
+-- ---------- (Optional) RLS suggestions ----------
+-- Enable RLS per table then:
+--   - Allow anonymous SELECT on published posts only
+--   - Restrict INSERT/UPDATE/DELETE to service role (via Supabase policies)
+-- Example (commented):
+/*
+alter table public.posts enable row level security;
 
-drop policy if exists "preset_certificates_public_read" on public.preset_certificates;
-create policy "preset_certificates_public_read" on public.preset_certificates for select using (true);
+create policy "Anon can read published posts"
+on public.posts for select
+to anon
+using (status = 'published' and posted = true);
+
+create policy "Service role full access"
+on public.posts for all
+to service_role
+using (true)
+with check (true);
+*/

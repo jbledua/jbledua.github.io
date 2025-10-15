@@ -20,7 +20,7 @@ import Paper from '@mui/material/Paper';
 import Grid from '@mui/material/Grid'
 import { Download, Tune } from '@mui/icons-material';
 import Alert from '@mui/material/Alert';
-import { listPresets, getPreset } from '../services/presetsService.js';
+import { listResumes, getResume } from '../services/resumesService.js';
 import { useDrawer } from '../components/DrawerContext.jsx';
 
 // Static identity assets (can be moved to DB later if desired)
@@ -41,7 +41,7 @@ export default function ResumeBuilderPage() {
   const [summaryVariant, setSummaryVariant] = useState(0);
   const [summaryVariants, setSummaryVariants] = useState([]); // [{ bulletLines:[], pointLines:[], paragraphs:[] }, ...]
   const [summaryFormat, setSummaryFormat] = useState('bullet'); // 'bullet' | 'paragraph'
-  const [presets, setPresets] = useState([]);
+  const [resumes, setResumes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const printRef = useRef(null);
@@ -62,17 +62,17 @@ export default function ResumeBuilderPage() {
 
   // No local fallback presets. We only use data from the database.
 
-  // Load presets from Supabase on mount; show empty/error states on failure or no data
+  // Load resumes from Supabase on mount; show empty/error states on failure or no data
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       try {
-        const list = await listPresets();
+        const list = await listResumes();
         if (cancelled) return;
-        setPresets(list || []);
+        setResumes(list || []);
         if (list && list.length) {
-          const ui = await getPreset(list[0].id);
+          const ui = await getResume(list[0].id);
           if (cancelled) return;
           // Map the fetched preset to the component state shape
           // Derive initial summary lines based on variant and default format
@@ -97,7 +97,7 @@ export default function ResumeBuilderPage() {
           setSummaryVariants(variants);
           setSummaryFormat(preferredFormat);
         } else {
-          // No presets in DB; keep empty state
+          // No resumes in DB; keep empty state
           setState((s) => ({ ...s, experiences: [], skills: {}, education: [], certificates: [] }));
         }
       } catch (e) {
@@ -109,10 +109,10 @@ export default function ResumeBuilderPage() {
     return () => { cancelled = true; };
   }, []);
 
-  const applyPresetFromDb = async (presetId) => {
+  const applyResumeFromDb = async (resumeId) => {
     try {
       setLoading(true);
-      const ui = await getPreset(presetId);
+      const ui = await getResume(resumeId);
       const variants = ui.summaryVariants || [];
       const initialVariantIdx = Number(ui.summaryVariant ?? 0);
       const hasBullets = (variants[initialVariantIdx]?.bulletLines || []).length > 0;
@@ -134,7 +134,7 @@ export default function ResumeBuilderPage() {
       setSummaryFormat(preferredFormat);
     } catch (e) {
       // eslint-disable-next-line no-console
-      console.error('Failed to apply preset from Supabase:', e);
+      console.error('Failed to apply resume from Supabase:', e);
     } finally {
       setLoading(false);
     }
@@ -319,16 +319,16 @@ export default function ResumeBuilderPage() {
       {/* Top controls */}
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
         <Stack direction="row" spacing={1}>
-          {presets && presets.length > 0 ? (
-            presets.map((p) => (
-              <Button key={p.id} variant="contained" disabled={loading} onClick={() => applyPresetFromDb(p.id)}>
-                {p.name}
+          {resumes && resumes.length > 0 ? (
+            resumes.map((r) => (
+              <Button key={r.id} variant="contained" disabled={loading} onClick={() => applyResumeFromDb(r.id)}>
+                {r.title}
               </Button>
             ))
           ) : null}
-          {!loading && presets.length === 0 && (
+          {!loading && resumes.length === 0 && (
             <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center', ml: 1 }}>
-              No presets found.
+              No resumes found.
             </Typography>
           )}
           <Button

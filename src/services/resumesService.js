@@ -1,0 +1,147 @@
+import { supabase } from './supabaseClient';
+
+// List available resumes (id, title)
+export async function listResumes() {
+  const { data, error } = await supabase
+    .from('resumes')
+    .select('id, title')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+// Fetch a single resume and map to UI shape consumed by ResumeBuilderPage
+export async function getResume(resumeId) {
+  // Resume core
+  const { data: resume, error: rErr } = await supabase
+    .from('resumes')
+    .select('id, title, profile_photo_id, summary_description_id')
+    .eq('id', resumeId)
+    .single();
+  if (rErr) throw rErr;
+
+  // Summary description
+  let summary = { bullets: [], paragraphs: [] };
+  if (resume.summary_description_id) {
+    const { data: desc, error: dErr } = await supabase
+      .from('descriptions')
+      .select('bullets, paragraphs')
+      .eq('id', resume.summary_description_id)
+      .single();
+    if (dErr) throw dErr;
+    summary = { bullets: desc?.bullets || [], paragraphs: desc?.paragraphs || [] };
+  }
+
+  // Resume jobs (ordered)
+  const { data: resumeJobs, error: jErr } = await supabase
+    .from('resume_jobs')
+    .select('job_id, position, jobs(id, company, role, type, start_date, end_date)')
+    .eq('resume_id', resumeId)
+    .order('position', { ascending: true });
+  if (jErr) throw jErr;
+
+  // For each job, fetch first description (if any)
+  const jobIds = (resumeJobs || []).map((rj) => rj.job_id);
+  let byJobDescription = new Map();
+  if (jobIds.length) {
+    const { data: jobDescs, error: jdErr } = await supabase
+      .from('job_descriptions')
+      .select('job_id, position, description:descriptions(id, paragraphs, bullets)')
+      .in('job_id', jobIds)
+      .order('position', { ascending: true });
+    if (jdErr) throw jdErr;
+    // Pick the first description per job
+    for (const row of jobDescs || []) {
+      if (!byJobDescription.has(row.job_id)) {
+        byJobDescription.set(row.job_id, row.description);
+      }
+    }
+  }
+
+  const experiences = (resumeJobs || []).map((rj) => {
+    const j = rj.jobs || {};
+    const d = byJobDescription.get(rj.job_id) || { paragraphs: [], bullets: [] };
+    const variant = {
+      title: `${j.role || 'Role'} · ${j.company || 'Company'}`,
+      period: buildPeriod(j.start_date, j.end_date),
+      employmentType: j.type || null,
+      summary: d.paragraphs?.[0] || null,
+      bullets: d.bullets || [],
+    };
+    return {
+      id: rj.job_id,
+      label: `${j.role || 'Role'} · ${j.company || 'Company'}`,
+      enabled: true,
+      variants: [variant],
+      selectedVariant: 0,
+    };
+  });
+
+  // Resume skills grouped by skill groups (ordered by bridge position)
+  const { data: resumeSkills, error: rsErr } = await supabase
+    .from('resume_skills')
+    .select('position, skills(id, name, skill_group_skills(position, skill_groups(id, name)))')
+    .eq('resume_id', resumeId)
+    .order('position', { ascending: true });
+  if (rsErr) throw rsErr;
+
+  const skills = {};
+  (resumeSkills || []).forEach((row) => {
+    const skill = row.skills;
+    if (!skill) return;
+    // Choose the first group (if multiple) for display grouping
+    const group = skill.skill_group_skills?.[0]?.skill_groups?.name || 'Skills';
+    if (!skills[group]) skills[group] = [];
+    skills[group].push({ id: skill.id, label: skill.name, enabled: true });
+  });
+
+  // Education: show all, newest first
+  const { data: edu, error: eErr } = await supabase
+    .from('education')
+    .select('id, school, degree, major, start_date, end_date')
+    .order('start_date', { ascending: false });
+  if (eErr) throw eErr;
+  const education = (edu || []).map((e) => ({
+    id: e.id,
+    label: e.school,
+    enabled: true,
+    degree: e.degree,
+    field: e.major,
+    period: buildPeriod(e.start_date, e.end_date),
+    summary: null,
+    bullets: [],
+  }));
+
+  // Certificates: show all, newest first
+  const { data: certs, error: cErr } = await supabase
+    .from('certificates')
+    .select('id, name, issuer, issue_date, expiry_date, credential_id, credential_url')
+    .order('issue_date', { ascending: false });
+  if (cErr) throw cErr;
+  const certificates = (certs || []).map((c) => ({
+    id: c.id,
+    label: c.name,
+    enabled: true,
+    issuer: c.issuer,
+    period: buildPeriod(c.issue_date, c.expiry_date),
+    credentialId: c.credential_id,
+    credentialUrl: c.credential_url,
+    summary: null,
+  }));
+
+  return {
+    options: { includePhoto: !!resume.profile_photo_id },
+    summaryVariant: 0,
+    summaryVariants: [{ bulletLines: summary.bullets || [], pointLines: summary.bullets || [], paragraphs: summary.paragraphs || [] }],
+    experiences,
+    skills,
+    education,
+    certificates,
+  };
+}
+
+function buildPeriod(start, end) {
+  if (!start && !end) return '';
+  const fmt = (d) => (d ? new Date(d).getFullYear() : 'Present');
+  return `${fmt(start)} — ${fmt(end)}`;
+}

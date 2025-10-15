@@ -1,26 +1,46 @@
--- Skills seed (groups and skills only)
+-- Skills seed (groups and skills via bridge table)
 
--- Optional: seed basic skills to reflect BASE_DATA
-insert into public.skill_groups (id, name, position) values
-  (gen_random_uuid(), 'Languages', 0),
-  (gen_random_uuid(), 'Frameworks', 1),
-  (gen_random_uuid(), 'Tools', 2);
+-- Seed basic groups
+insert into public.skill_groups (id, name)
+values
+  (gen_random_uuid(), 'Languages'),
+  (gen_random_uuid(), 'Frameworks'),
+  (gen_random_uuid(), 'Tools')
+on conflict (name) do nothing;
 
--- Capture group ids
-with groups as (
+-- Seed skills by name
+insert into public.skills (id, name)
+values
+  (gen_random_uuid(), 'TypeScript'),
+  (gen_random_uuid(), 'Python'),
+  (gen_random_uuid(), 'SQL'),
+  (gen_random_uuid(), 'React'),
+  (gen_random_uuid(), 'Node.js'),
+  (gen_random_uuid(), 'MUI'),
+  (gen_random_uuid(), 'Git/GitHub'),
+  (gen_random_uuid(), 'Docker'),
+  (gen_random_uuid(), 'GitHub Actions')
+on conflict (name) do nothing;
+
+-- Map skills into groups with positions
+with g as (
   select id, name from public.skill_groups
+), s as (
+  select id, name from public.skills
+), map as (
+  select 'Languages'::text as group_name, 'TypeScript'::text as skill_name, 0 as pos union all
+  select 'Languages', 'Python', 1 union all
+  select 'Languages', 'SQL', 2 union all
+  select 'Frameworks', 'React', 0 union all
+  select 'Frameworks', 'Node.js', 1 union all
+  select 'Frameworks', 'MUI', 2 union all
+  select 'Tools', 'Git/GitHub', 0 union all
+  select 'Tools', 'Docker', 1 union all
+  select 'Tools', 'GitHub Actions', 2
 )
-insert into public.skills (id, group_id, label, position)
-select gen_random_uuid(), g.id, label, pos from (
-  values
-    ('Languages', 'TypeScript', 0),
-    ('Languages', 'Python', 1),
-    ('Languages', 'SQL', 2),
-    ('Frameworks', 'React', 0),
-    ('Frameworks', 'Node.js', 1),
-    ('Frameworks', 'MUI', 2),
-    ('Tools', 'Git/GitHub', 0),
-    ('Tools', 'Docker', 1),
-    ('Tools', 'GitHub Actions', 2)
-) s(group_name, label, pos)
-join groups g on g.name = s.group_name;
+insert into public.skill_group_skills (skill_group_id, skill_id, position)
+select g.id, s.id, map.pos
+from map
+join g on g.name = map.group_name
+join s on s.name = map.skill_name
+on conflict (skill_group_id, skill_id) do nothing;
