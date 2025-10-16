@@ -25,6 +25,7 @@ import CardHeader from '@mui/material/CardHeader';
 import CardMedia from '@mui/material/CardMedia';
 import Chip from '@mui/material/Chip';
 import { useTheme } from '@mui/material/styles';
+import { keyframes } from '@mui/system';
 import { Link as RouterLink } from 'react-router-dom';
 import { Download, Tune } from '@mui/icons-material';
 import Alert from '@mui/material/Alert';
@@ -59,6 +60,57 @@ export default function ResumeBuilderPage() {
   const { open, openDrawer, closeDrawer, toggleDrawer, setContent } = useDrawer();
   const theme = useTheme();
   const toSlug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+  // Map each skill group to a stable color scheme from the theme palette
+  const paletteSchemes = ['primary', 'secondary', 'success', 'info', 'warning', 'error'];
+  const hashString = (str) => {
+    let h = 5381;
+    for (let i = 0; i < str.length; i++) {
+      h = ((h << 5) + h) ^ str.charCodeAt(i);
+    }
+    return Math.abs(h);
+  };
+  const getGroupScheme = (groupName) => paletteSchemes[hashString(groupName) % paletteSchemes.length];
+
+  // Bounce animation for highlighted chips
+  const bounceKeyframes = useMemo(() => keyframes`
+    0% { transform: translateY(0); box-shadow: none; }
+    25% { transform: translateY(-3px) scale(1.02); box-shadow: 0 6px 12px rgba(0,0,0,0.15); }
+    50% { transform: translateY(0); }
+    75% { transform: translateY(-2px) scale(1.01); }
+    100% { transform: translateY(0); box-shadow: none; }
+  `, []);
+
+  // Global chip highlight state (by normalized label)
+  const [highlightedSkill, setHighlightedSkill] = useState(null);
+  const highlightTimeoutRef = useRef(null);
+  const normalizeLabel = (s) => String(s || '').toLowerCase();
+  const triggerHighlight = (label) => {
+    const key = normalizeLabel(label);
+    // reset first to restart animation if same label clicked
+    setHighlightedSkill(null);
+    if (highlightTimeoutRef.current) {
+      clearTimeout(highlightTimeoutRef.current);
+      highlightTimeoutRef.current = null;
+    }
+    // slight delay so the animation toggles off -> on
+    setTimeout(() => setHighlightedSkill(key), 0);
+    highlightTimeoutRef.current = setTimeout(() => setHighlightedSkill(null), 1200);
+  };
+
+  // Build a map of skill label -> palette scheme based on its group
+  const skillLabelToScheme = useMemo(() => {
+    const map = new Map();
+    Object.entries(state.skills || {}).forEach(([group, items]) => {
+      const scheme = getGroupScheme(group);
+      (items || []).forEach((i) => {
+        if (!i || !i.label) return;
+        map.set(i.label, scheme);
+        map.set(String(i.label).toLowerCase(), scheme);
+      });
+    });
+    return map;
+  }, [state.skills]);
 
   const experiencesToShow = useMemo(() => state.experiences.filter((e) => e.enabled), [state.experiences]);
   const educationToShow = useMemo(() => (state.education || []).filter((e) => e.enabled), [state.education]);
@@ -555,9 +607,21 @@ export default function ResumeBuilderPage() {
                     )}
                     {Array.isArray(v.skills) && v.skills.length > 0 && (
                       <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {v.skills.map((s) => (
-                          <Chip key={s} label={s} size="small" variant="outlined" />
-                        ))}
+                        {v.skills.map((s) => {
+                          const scheme = skillLabelToScheme.get(s) || skillLabelToScheme.get(String(s).toLowerCase());
+                          const isHighlighted = normalizeLabel(s) === highlightedSkill;
+                          return (
+                            <Chip
+                              key={s}
+                              label={s}
+                              size="small"
+                              variant={isHighlighted ? 'filled' : 'outlined'}
+                              color={scheme || 'default'}
+                              onClick={() => triggerHighlight(s)}
+                              sx={isHighlighted ? { animation: `${bounceKeyframes} 650ms ease` } : undefined}
+                            />
+                          );
+                        })}
                       </Box>
                     )}
                   </Box>
@@ -657,9 +721,21 @@ export default function ResumeBuilderPage() {
                             {(p.tags || [])
                               .filter((t) => (typeof t === 'string') ? true : t.enabled)
                               .map((t) => (typeof t === 'string' ? t : t.label))
-                              .map((t) => (
-                                <Chip key={t} label={t} size="small" variant="outlined" />
-                              ))}
+                              .map((t) => {
+                                const scheme = skillLabelToScheme.get(t) || skillLabelToScheme.get(String(t).toLowerCase());
+                                const isHighlighted = normalizeLabel(t) === highlightedSkill;
+                                return (
+                                  <Chip
+                                    key={t}
+                                    label={t}
+                                    size="small"
+                                    variant={isHighlighted ? 'filled' : 'outlined'}
+                                    color={scheme || 'default'}
+                                    onClick={() => triggerHighlight(t)}
+                                    sx={isHighlighted ? { animation: `${bounceKeyframes} 650ms ease` } : undefined}
+                                  />
+                                );
+                              })}
                           </Box>
                         )}
                       </CardContent>
@@ -691,14 +767,19 @@ export default function ResumeBuilderPage() {
               <Grid container spacing={2}>
                 {skillsToShow.map(({ group, items }) => (
                   <Grid key={group} size={{ xs: 12, sm: 6, md: 4 }}>
+                    {(() => {
+                      const scheme = getGroupScheme(group);
+                      const schemeColor = theme.palette?.[scheme]?.main || theme.palette.divider;
+                      return (
                     <Box
                       component="fieldset"
                       sx={{
                         p: 1.5,
                         border: '1px solid',
-                        borderColor: 'divider',
+                        borderColor: schemeColor,
                         borderRadius: 1,
                         '& legend': {
+                          color: schemeColor,
                           fontWeight: 600,
                           px: 0.75,
                           ml: 1,
@@ -708,11 +789,24 @@ export default function ResumeBuilderPage() {
                     >
                       <Typography component="legend" variant="subtitle2">{group}</Typography>
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {items.map((i) => (
-                          <Chip key={i.id} label={i.label} size="small" variant="outlined" />
-                        ))}
+                        {items.map((i) => {
+                          const isHighlighted = normalizeLabel(i.label) === highlightedSkill;
+                          return (
+                            <Chip
+                              key={i.id}
+                              label={i.label}
+                              size="small"
+                              variant={isHighlighted ? 'filled' : 'outlined'}
+                              color={scheme}
+                              onClick={() => triggerHighlight(i.label)}
+                              sx={isHighlighted ? { animation: `${bounceKeyframes} 650ms ease` } : undefined}
+                            />
+                          );
+                        })}
                       </Box>
                     </Box>
+                      );
+                    })()}
                   </Grid>
                 ))}
               </Grid>
