@@ -31,12 +31,13 @@ import { Link as RouterLink } from 'react-router-dom';
 import { Download, Tune } from '@mui/icons-material';
 import Alert from '@mui/material/Alert';
 import { listResumes, getResume } from '../services/resumesService.js';
+import { onAuthStateChange, signInWithMagicLink, signOut, getCurrentSession } from '../services/authService.js';
 import { listProjects } from '../services/projectsService.js';
 import { useDrawer } from '../components/DrawerContext.jsx';
 import QrWithLogo from '../components/QrWithLogo.jsx';
 import ResumeBuilderDrawerContent from '../components/ResumeDrawer.jsx';
 import Link from '@mui/material/Link';
-import { GitHub, LinkedIn, Facebook, Twitter, Instagram, Link as LinkIcon } from '@mui/icons-material';
+import { GitHub, LinkedIn, Facebook, Twitter, Instagram, Link as LinkIcon, Email, Phone } from '@mui/icons-material';
 
 import {Language as Website} from '@mui/icons-material';
 // Static identity assets (can be moved to DB later if desired)
@@ -62,6 +63,7 @@ export default function ResumePage() {
   const [resumes, setResumes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [session, setSession] = useState(null);
   const printRef = useRef(null);
   const { open, openDrawer, closeDrawer, toggleDrawer, setContent } = useDrawer();
   const theme = useTheme();
@@ -137,6 +139,16 @@ export default function ResumePage() {
   // Load resumes and projects from Supabase on mount; show empty/error states on failure or no data
   useEffect(() => {
     let cancelled = false;
+    // Initialize auth state
+    (async () => {
+      try {
+        const s = await getCurrentSession();
+        if (!cancelled) setSession(s);
+      } catch {
+        /* ignore */
+      }
+    })();
+    const unsub = onAuthStateChange((s) => { if (!cancelled) setSession(s); });
     (async () => {
       setLoading(true);
       try {
@@ -220,7 +232,7 @@ export default function ResumePage() {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; unsub?.(); };
   }, []);
 
   const applyResumeFromDb = async (resumeId) => {
@@ -423,6 +435,19 @@ export default function ResumePage() {
               No resumes found.
             </Typography>
           )}
+          {/* Simple auth controls */}
+          <Box sx={{ display: 'inline-flex', alignItems: 'center', ml: 1 }}>
+            {session ? (
+              <Button size="small" onClick={() => signOut()}>Sign out</Button>
+            ) : (
+              <Tooltip title="Sign in to view private contact info">
+                <Button size="small" onClick={() => {
+                  const email = prompt('Enter your email for a magic link:');
+                  if (email) signInWithMagicLink(email).catch((e) => console.error(e));
+                }}>Sign in</Button>
+              </Tooltip>
+            )}
+          </Box>
         </Stack>
         <Tooltip title="Download PDF">
           <IconButton color="primary" onClick={handleDownload} aria-label="Download resume">
@@ -444,9 +469,10 @@ export default function ResumePage() {
                   
                   {/* Contact section */}
                   <Box sx={{ width: '100%', mt: 1 }}>
-                    <Box sx={{ borderTop: '1px solid', borderColor: 'divider', mt: 1, mb: 1 }} />
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>Contact</Typography>
+                    <Divider sx={{ mb: 1 }} />
+                    <Typography variant="h6" gutterBottom>Summary</Typography>
                     {(() => {
+                      const isAuthed = !!session;
                       const formatUrlDisplay = (url) => {
                         try {
                           const u = new URL(url);
@@ -460,6 +486,17 @@ export default function ResumePage() {
                             .replace(/\/+$/, '');
                         }
                       };
+                      const formatContactText = (url) => {
+                        if (/^mailto:/i.test(url)) {
+                          const email = url.replace(/^mailto:/i, '');
+                          return isAuthed ? email : 'email (sign in)';
+                        }
+                        if (/^tel:/i.test(url)) {
+                          const phone = url.replace(/^tel:/i, '');
+                          return isAuthed ? phone : 'phone (sign in)';
+                        }
+                        return formatUrlDisplay(url);
+                      };
                       const getIcon = (name, iconStr, url) => {
                         const key = String(iconStr || name || '').toLowerCase();
                         if (key.includes('git')) return <GitHub fontSize="small" />;
@@ -468,6 +505,8 @@ export default function ResumePage() {
                         if (key.includes('facebook')) return <Facebook fontSize="small" />;
                         if (key.includes('instagram')) return <Instagram fontSize="small" />;
                         if (key.includes('website')) return <Website fontSize="small" />;
+                        if (key.includes('email')) return <Email fontSize="small" />;
+                        if (key.includes('phone')) return <Phone fontSize="small" />;
                         return <LinkIcon fontSize="small" />;
                       };
                       const getTooltip = (name, url) => {
@@ -485,29 +524,40 @@ export default function ResumePage() {
                           key: a.id,
                           url: a.url,
                           icon: getIcon(a.name, a.icon, a.url),
-                          text: formatUrlDisplay(a.url),
+                          text: formatContactText(a.url),
                           tooltip: getTooltip(a.name, a.url),
                           ariaLabel: getAriaLabel(a.name, a.url),
+                          requiresAuth: !!a.requiresAuth,
                         }));
                       return (
                         <Stack spacing={1}>
                           {items.map((it) => (
                             <Stack key={it.key} direction="row" spacing={1} alignItems="center">
-                              <Tooltip title={it.tooltip}>
+                              <Tooltip title={it.requiresAuth && !isAuthed ? 'Sign in to view' : it.tooltip}>
                                 <IconButton
-                                  component={Link}
-                                  href={it.url}
-                                  target="_blank"
-                                  rel="noreferrer"
+                                  component={it.requiresAuth && !isAuthed ? 'button' : Link}
+                                  href={it.requiresAuth && !isAuthed ? undefined : it.url}
+                                  onClick={it.requiresAuth && !isAuthed ? () => {
+                                    const email = prompt('Enter your email for a magic link:');
+                                    if (email) signInWithMagicLink(email).catch((e) => console.error(e));
+                                  } : undefined}
+                                  target={it.requiresAuth && !isAuthed ? undefined : "_blank"}
+                                  rel={it.requiresAuth && !isAuthed ? undefined : "noreferrer"}
                                   aria-label={it.ariaLabel}
                                   size="small"
                                 >
                                   {it.icon}
                                 </IconButton>
                               </Tooltip>
-                              <Link href={it.url} target="_blank" rel="noreferrer" underline="hover" color="inherit" variant="body2">
-                                {it.text}
-                              </Link>
+                              {it.requiresAuth && !isAuthed ? (
+                                <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                                  {it.text}
+                                </Typography>
+                              ) : (
+                                <Link href={it.url} target="_blank" rel="noreferrer" underline="hover" color="inherit" variant="body2">
+                                  {it.text}
+                                </Link>
+                              )}
                             </Stack>
                           ))}
                         </Stack>
@@ -520,6 +570,8 @@ export default function ResumePage() {
               )}
               <Box sx={{ flex: 1 }}>
                 <Typography variant="h4" gutterBottom>{NAME}</Typography>
+                <Divider sx={{ mb: 1 }} />
+                <Typography variant="h6" gutterBottom>Summary</Typography>
                 {summaryFormat === 'paragraph' ? (
                   (state.summaryParagraphs && state.summaryParagraphs.length > 0 ? (
                     <Stack spacing={1}>

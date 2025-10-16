@@ -12,8 +12,22 @@ with s as (
     insert into public.descriptions (id, paragraphs, bullets)
     values (
         gen_random_uuid(),
-        array['Technologist spanning systems, software, and cloud. Pragmatic, security-minded, and outcome-focused.'],
-        array['Automation-first', 'Clear comms', 'Customer impact']
+        array[
+            'Technologist spanning systems, software, and cloud. Pragmatic, security-minded, and outcome-focused.',
+            'Builds reliable, scalable services and developer platforms with an automation-first approach—observability, CI/CD, and infrastructure-as-code baked in.',
+            'Leads with clarity and collaboration, turning ambiguous problems into shipped, measurable outcomes that improve customer experience.'
+        ],
+        array[
+            'Automation-first',
+            'Clear comms',
+            'Customer impact',
+            'Secure-by-default',
+            'Data-informed decisions',
+            'Execution and ownership',
+            'Operational excellence (SLOs, on-call)',
+            'Cost-aware (performance + FinOps)',
+            'Mentorship and team growth'
+        ]
     ) returning id
 )
 insert into public.resumes (id, title, profile_photo_id, style, summary_description_id)

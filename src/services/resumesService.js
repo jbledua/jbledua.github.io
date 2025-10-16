@@ -152,22 +152,48 @@ export async function getResume(resumeId) {
   }));
 
   // Contact accounts for this resume (ordered)
-  const { data: rAccounts, error: raErr } = await supabase
-    .from('resume_accounts')
-    .select('position, label, accounts:accounts(id, name, icon, link)')
-    .eq('resume_id', resumeId)
-    .order('position', { ascending: true });
-  if (raErr) throw raErr;
-  const accounts = (rAccounts || [])
-    .map((row) => ({
-      id: row.accounts?.id,
-      name: row.accounts?.name || '',
-      url: row.accounts?.link || '',
-      icon: row.accounts?.icon || null,
-      label: row.label || null,
-      position: row.position ?? 0,
-    }))
-    .filter((a) => a.id && a.url);
+  let accounts = [];
+  try {
+    const { data: rAccounts, error: raErr } = await supabase
+      .from('resume_accounts')
+      .select('position, label, accounts:accounts(*)')
+      .eq('resume_id', resumeId)
+      .order('position', { ascending: true });
+    if (raErr) throw raErr;
+    accounts = (rAccounts || [])
+      .map((row) => ({
+        id: row.accounts?.id,
+        name: row.accounts?.name || '',
+        url: row.accounts?.link || '',
+        icon: row.accounts?.icon || null,
+        label: row.label || null,
+        position: row.position ?? 0,
+        requiresAuth: !!row.accounts?.requires_auth,
+      }))
+      .filter((a) => a.id && a.url);
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to load resume_accounts, will try fallback accounts:', e?.message || e);
+  }
+
+  // Fallback: If no resume-linked accounts, show all public accounts (and private ones will still be gated in UI)
+  if (!accounts || accounts.length === 0) {
+    const { data: accs, error: accErr } = await supabase
+      .from('accounts')
+      .select('id, name, icon, link, requires_auth')
+      .order('name', { ascending: true });
+    if (!accErr) {
+      accounts = (accs || []).map((a, idx) => ({
+        id: a.id,
+        name: a.name || '',
+        url: a.link || '',
+        icon: a.icon || null,
+        label: null,
+        position: idx,
+        requiresAuth: !!a.requires_auth,
+      })).filter((a) => a.id && a.url);
+    }
+  }
 
   return {
     options: { includePhoto: !!resume.profile_photo_id },
