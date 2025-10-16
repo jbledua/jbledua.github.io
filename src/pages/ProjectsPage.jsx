@@ -161,6 +161,7 @@ async function loadRepoData(repoEntry) {
 function RepoCard({ data }) {
   const theme = useTheme();
   const { repoUrl, owner, repo, branch, repoName, repoDescription, imageUrl, lightImageUrl, darkImageUrl, error } = data;
+  const toSlug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   
   // Add Branch to title if not default "main" or "master"
   // (optional, uncomment if desired)
@@ -173,7 +174,7 @@ function RepoCard({ data }) {
     || (theme?.palette?.mode === 'dark' ? DEFAULT_GITHUB_IMAGE_DARK : DEFAULT_GITHUB_IMAGE_LIGHT);
 
   return (
-    <Card variant="outlined" sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <Card id={toSlug(title)} variant="outlined" sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Top centered small logo */}
       <Box sx={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
         <Box

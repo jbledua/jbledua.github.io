@@ -18,9 +18,18 @@ import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 import Paper from '@mui/material/Paper';
 import Grid from '@mui/material/Grid'
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import CardActions from '@mui/material/CardActions';
+import CardHeader from '@mui/material/CardHeader';
+import CardMedia from '@mui/material/CardMedia';
+import Chip from '@mui/material/Chip';
+import { useTheme } from '@mui/material/styles';
+import { Link as RouterLink } from 'react-router-dom';
 import { Download, Tune } from '@mui/icons-material';
 import Alert from '@mui/material/Alert';
 import { listResumes, getResume } from '../services/resumesService.js';
+import { listProjects } from '../services/projectsService.js';
 import { useDrawer } from '../components/DrawerContext.jsx';
 
 // Static identity assets (can be moved to DB later if desired)
@@ -37,6 +46,7 @@ export default function ResumeBuilderPage() {
     skills: {},
     education: [],
     certificates: [],
+    projects: [],
   });
   const [summaryVariant, setSummaryVariant] = useState(0);
   const [summaryVariants, setSummaryVariants] = useState([]); // [{ bulletLines:[], pointLines:[], paragraphs:[] }, ...]
@@ -46,10 +56,13 @@ export default function ResumeBuilderPage() {
   const [error, setError] = useState(null);
   const printRef = useRef(null);
   const { open, openDrawer, closeDrawer, toggleDrawer, setContent } = useDrawer();
+  const theme = useTheme();
+  const toSlug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
   const experiencesToShow = useMemo(() => state.experiences.filter((e) => e.enabled), [state.experiences]);
   const educationToShow = useMemo(() => (state.education || []).filter((e) => e.enabled), [state.education]);
   const certificatesToShow = useMemo(() => (state.certificates || []).filter((c) => c.enabled), [state.certificates]);
+  const projectsToShow = useMemo(() => (state.projects || []).filter((p) => p.enabled), [state.projects]);
 
   const skillsToShow = useMemo(() => {
     const res = [];
@@ -62,13 +75,16 @@ export default function ResumeBuilderPage() {
 
   // No local fallback presets. We only use data from the database.
 
-  // Load resumes from Supabase on mount; show empty/error states on failure or no data
+  // Load resumes and projects from Supabase on mount; show empty/error states on failure or no data
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       try {
-        const list = await listResumes();
+        const [list, projList] = await Promise.all([
+          listResumes(),
+          listProjects().catch(() => []),
+        ]);
         if (cancelled) return;
         setResumes(list || []);
         if (list && list.length) {
@@ -92,13 +108,43 @@ export default function ResumeBuilderPage() {
             skills: ui.skills || {},
             education: ui.education || [],
             certificates: ui.certificates || [],
+            projects: (projList || []).map((p) => ({
+              id: p.id,
+              label: p.title,
+              enabled: true,
+              url: p.github_url,
+              description: (p.descriptions?.paragraphs?.[0] || ''),
+              paragraphs: p.descriptions?.paragraphs || [],
+              tags: (p.project_skills || [])
+                .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+                .map((ps) => ps?.skills?.name)
+                .filter(Boolean),
+            })),
           });
           setSummaryVariant(initialVariantIdx);
           setSummaryVariants(variants);
           setSummaryFormat(preferredFormat);
         } else {
           // No resumes in DB; keep empty state
-          setState((s) => ({ ...s, experiences: [], skills: {}, education: [], certificates: [] }));
+          setState((s) => ({
+            ...s,
+            experiences: [],
+            skills: {},
+            education: [],
+            certificates: [],
+            projects: (projList || []).map((p) => ({
+              id: p.id,
+              label: p.title,
+              enabled: true,
+              url: p.github_url,
+              description: (p.descriptions?.paragraphs?.[0] || ''),
+              paragraphs: p.descriptions?.paragraphs || [],
+              tags: (p.project_skills || [])
+                .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+                .map((ps) => ps?.skills?.name)
+                .filter(Boolean),
+            })),
+          }));
         }
       } catch (e) {
         setError(e);
@@ -120,7 +166,7 @@ export default function ResumeBuilderPage() {
       const preferredFormat = hasBullets ? 'bullet' : (hasParagraphs ? 'paragraph' : 'bullet');
       const initialLines = preferredFormat === 'bullet' ? (variants[initialVariantIdx]?.bulletLines || []) : [];
       const initialParagraphs = preferredFormat === 'paragraph' ? (variants[initialVariantIdx]?.paragraphs || []) : [];
-      setState({
+      setState((prev) => ({
         options: { includePhoto: !!ui.options?.includePhoto },
         summaryLines: initialLines,
         summaryParagraphs: initialParagraphs,
@@ -128,7 +174,8 @@ export default function ResumeBuilderPage() {
         skills: ui.skills || {},
         education: ui.education || [],
         certificates: ui.certificates || [],
-      });
+        projects: prev.projects || [],
+      }));
       setSummaryVariant(initialVariantIdx);
       setSummaryVariants(variants);
       setSummaryFormat(preferredFormat);
@@ -162,6 +209,12 @@ export default function ResumeBuilderPage() {
     setState((s) => ({
       ...s,
       certificates: (s.certificates || []).map((c) => (c.id === id ? { ...c, enabled: !c.enabled } : c)),
+    }));
+  };
+  const toggleProjectEnabled = (id) => {
+    setState((s) => ({
+      ...s,
+      projects: (s.projects || []).map((p) => (p.id === id ? { ...p, enabled: !p.enabled } : p)),
     }));
   };
   const updateRoleVariant = (id, variantIdx) => {
@@ -269,6 +322,15 @@ export default function ResumeBuilderPage() {
           </Box>
         ))}
       </Stack>
+      <Divider sx={{ my: 2 }} />
+      <Typography variant="subtitle1" gutterBottom>Projects</Typography>
+      <Stack spacing={2}>
+        {(state.projects || []).map((p) => (
+          <Box key={p.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}>
+            <FormControlLabel control={<Checkbox checked={p.enabled} onChange={() => toggleProjectEnabled(p.id)} />} label={p.label} />
+          </Box>
+        ))}
+      </Stack>
       <Typography variant="subtitle1" gutterBottom>Skills</Typography>
       <Stack spacing={1}>
         {Object.entries(state.skills).map(([group, items]) => (
@@ -311,6 +373,8 @@ export default function ResumeBuilderPage() {
           #resume-print-area .resume-section > * { page-break-inside: avoid; break-inside: avoid-page; }
           /* Grid items should stay intact */
           #resume-print-area .MuiGrid-item { page-break-inside: avoid; break-inside: avoid-page; }
+          /* Hide interactive card actions (buttons/links) when printing */
+          #resume-print-area .MuiCardActions-root { display: none !important; }
           /* Optional: reduce outer page margins for better fit */
           @page { margin: 12mm; }
         }
@@ -426,6 +490,92 @@ export default function ResumeBuilderPage() {
               </Stack>
             )}
           </Box>
+
+          <Divider sx={{ my: 3 }} />
+
+          {/* Projects */}
+          <Box className="resume-section">
+            <Typography variant="h6" gutterBottom>Projects</Typography>
+            {projectsToShow.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">No projects to display.</Typography>
+            ) : (
+              <Grid container spacing={2}>
+                {projectsToShow.map((p) => (
+                  <Grid key={p.id} size={{ xs: 12, sm: 4 }}>
+                    
+
+                    <Card
+                      variant="outlined"
+                      sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        height: '100%',
+                        borderColor: 'divider',
+                        transition: (theme) => theme.transitions.create(
+                          ['box-shadow', 'transform', 'border-color'],
+                          { duration: theme.transitions.duration.shorter }
+                        ),
+                        '&:hover': {
+                          boxShadow: 6,
+                          transform: 'translateY(-2px)',
+                          borderColor: 'primary.main',
+                          borderWidth: 2,
+                        },
+                      }}
+                    >
+                      <CardHeader
+                        title={p.label}
+                        titleTypographyProps={{ variant: 'subtitle1' }}
+                        subheader={p.url && (
+                          <a href={p.url} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>
+                            {p.url.replace(/^https?:\/\//, '')}
+                          </a>
+                        )}
+                        subheaderTypographyProps={{ variant: 'caption' }}
+                      />
+                      <CardMedia
+                        sx={{ height: 96, bgcolor: 'background.default', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 1 }}
+                      >
+                        <Box
+                          component="img"
+                          src={theme?.palette?.mode === 'dark' ? '/images/github-mark-white.png' : '/images/github-mark.png'}
+                          alt={`${p.label} logo`}
+                          loading="lazy"
+                          sx={{ maxHeight: 40, maxWidth: '50%', objectFit: 'contain' }}
+                        />
+                      </CardMedia>
+                      <CardContent sx={{ flexGrow: 1 }}>                    
+                        {p.description || (p.paragraphs && p.paragraphs.length) ? (
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: (p.tags && p.tags.length) ? 1 : 0 }}>
+                            {p.description || p.paragraphs[0]}
+                          </Typography>
+                        ) : null}
+                        {(p.tags && p.tags.length > 0) && (
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                            {p.tags.map((t) => (
+                              <Chip key={t} label={t} size="small" variant="outlined" />
+                            ))}
+                          </Box>
+                        )}
+                      </CardContent>
+                      <CardActions>
+                        <Button
+                          size="small"
+                          color="primary"
+                          component={RouterLink}
+                          to={`/projects#${toSlug(p.label)}`}
+                        >
+                          Learn More
+                        </Button>
+                      </CardActions>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+          </Box>
+
+          <Divider sx={{ my: 3 }} />
 
           {/* Skills */}
           <Box className="resume-section">

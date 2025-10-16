@@ -5,7 +5,7 @@ export async function listProjects({ limit = 50, presetId = null } = {}) {
   if (presetId) {
     const { data, error } = await supabase
       .from('preset_projects')
-      .select('position, projects(*)')
+      .select('position, projects(*, descriptions:description_id(paragraphs, bullets), project_skills(position, skills(name)))')
       .eq('preset_id', presetId)
       .eq('enabled', true)
       .order('position', { ascending: true })
@@ -15,7 +15,7 @@ export async function listProjects({ limit = 50, presetId = null } = {}) {
   }
   const { data, error } = await supabase
     .from('projects')
-    .select('*')
+    .select('*, descriptions:description_id(paragraphs, bullets), project_skills(position, skills(name))')
     .order('created_at', { ascending: false })
     .limit(limit);
   if (error) throw error;
