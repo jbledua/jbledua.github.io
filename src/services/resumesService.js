@@ -43,6 +43,7 @@ export async function getResume(resumeId) {
   // For each job, fetch first description (if any)
   const jobIds = (resumeJobs || []).map((rj) => rj.job_id);
   let byJobDescription = new Map();
+  let byJobSkills = new Map();
   if (jobIds.length) {
     const { data: jobDescs, error: jdErr } = await supabase
       .from('job_descriptions')
@@ -56,6 +57,22 @@ export async function getResume(resumeId) {
         byJobDescription.set(row.job_id, row.description);
       }
     }
+
+    // Fetch job skills for these jobs
+    const { data: jobSkills, error: jsErr } = await supabase
+      .from('job_skills')
+      .select('job_id, skills(id, name)')
+      .in('job_id', jobIds);
+    if (jsErr) throw jsErr;
+    for (const row of jobSkills || []) {
+      const k = row.job_id;
+      const name = row.skills?.name;
+      if (!name) continue;
+      if (!byJobSkills.has(k)) byJobSkills.set(k, []);
+      // avoid duplicates
+      const arr = byJobSkills.get(k);
+      if (!arr.includes(name)) arr.push(name);
+    }
   }
 
   const experiences = (resumeJobs || []).map((rj) => {
@@ -67,6 +84,7 @@ export async function getResume(resumeId) {
       employmentType: j.type || null,
       summary: d.paragraphs?.[0] || null,
       bullets: d.bullets || [],
+      skills: byJobSkills.get(rj.job_id) || [],
     };
     return {
       id: rj.job_id,

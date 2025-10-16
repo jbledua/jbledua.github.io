@@ -451,6 +451,14 @@ export default function ResumeBuilderPage() {
       {/* Top controls */}
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
         <Stack direction="row" spacing={1}>
+          <Tooltip title="Customize resume">
+            <Button
+              variant="outlined"
+              onClick={() => toggleDrawer(drawerContent)}
+              startIcon={<Tune />}
+            />
+          </Tooltip>
+          
           {resumes && resumes.length > 0 ? (
             resumes.map((r) => (
               <Button key={r.id} variant="contained" disabled={loading} onClick={() => applyResumeFromDb(r.id)}>
@@ -463,13 +471,6 @@ export default function ResumeBuilderPage() {
               No resumes found.
             </Typography>
           )}
-          <Button
-            variant="outlined"
-            onClick={() => toggleDrawer(drawerContent)}
-            startIcon={<Tune />}
-          >
-            Custom
-          </Button>
         </Stack>
         <Tooltip title="Download PDF">
           <IconButton color="primary" onClick={handleDownload} aria-label="Download resume">
@@ -551,6 +552,13 @@ export default function ResumeBuilderPage() {
                           <li key={i}><Typography variant="body2">{b}</Typography></li>
                         ))}
                       </ul>
+                    )}
+                    {Array.isArray(v.skills) && v.skills.length > 0 && (
+                      <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {v.skills.map((s) => (
+                          <Chip key={s} label={s} size="small" variant="outlined" />
+                        ))}
+                      </Box>
                     )}
                   </Box>
                 );
@@ -683,13 +691,27 @@ export default function ResumeBuilderPage() {
               <Grid container spacing={2}>
                 {skillsToShow.map(({ group, items }) => (
                   <Grid key={group} size={{ xs: 12, sm: 6, md: 4 }}>
-                    <Box>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{group}</Typography>
-                      <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: '1.2rem' }}>
+                    <Box
+                      component="fieldset"
+                      sx={{
+                        p: 1.5,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        '& legend': {
+                          fontWeight: 600,
+                          px: 0.75,
+                          ml: 1,
+                          fontSize: '0.9rem',
+                        },
+                      }}
+                    >
+                      <Typography component="legend" variant="subtitle2">{group}</Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                         {items.map((i) => (
-                          <li key={i.id}><Typography variant="body2">{i.label}</Typography></li>
+                          <Chip key={i.id} label={i.label} size="small" variant="outlined" />
                         ))}
-                      </ul>
+                      </Box>
                     </Box>
                   </Grid>
                 ))}
