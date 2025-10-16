@@ -5,13 +5,7 @@ insert into public.photos (id, title, file_path, alt)
 values (gen_random_uuid(), 'Profile', 'public/media/profile.jpg', 'Profile photo')
 on conflict do nothing;
 
--- Create accounts
-insert into public.accounts (id, name, icon, link)
-values
-    (gen_random_uuid(), 'GitHub', 'github', 'https://github.com/jbledua'),
-    (gen_random_uuid(), 'LinkedIn', 'linkedin', 'https://linkedin.com/in/jbledua'),
-    (gen_random_uuid(), 'Website', 'link', 'https://jbledua.github.io')
-on conflict do nothing;
+-- Accounts are seeded in seed_accounts.sql
 
 -- Create a summary description
 with s as (
@@ -31,7 +25,7 @@ with r as (
 )
 insert into public.resume_accounts (resume_id, account_id, label, position)
 select r.id, a.id, null, row_number() over(order by a.name) - 1
-from r, public.accounts a
+from r cross join public.accounts a
 on conflict do nothing;
 
 with r as (

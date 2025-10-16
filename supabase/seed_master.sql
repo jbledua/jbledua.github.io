@@ -3,6 +3,7 @@
 
 -- Core lookups and content
 \i 'seed_skills.sql'
+\i 'seed_accounts.sql'
 \i 'seed_experience.sql'
 \i 'seed_education.sql'
 \i 'seed_certificates.sql'

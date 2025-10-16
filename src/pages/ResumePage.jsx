@@ -35,7 +35,10 @@ import { listProjects } from '../services/projectsService.js';
 import { useDrawer } from '../components/DrawerContext.jsx';
 import QrWithLogo from '../components/QrWithLogo.jsx';
 import ResumeBuilderDrawerContent from '../components/ResumeDrawer.jsx';
+import Link from '@mui/material/Link';
+import { GitHub, LinkedIn, Facebook, Twitter, Instagram, Link as LinkIcon } from '@mui/icons-material';
 
+import {Language as Website} from '@mui/icons-material';
 // Static identity assets (can be moved to DB later if desired)
 const PROFILE_IMG = '/images/profile.jpg';
 const NAME = 'Josiah Ledua';
@@ -51,6 +54,7 @@ export default function ResumePage() {
     education: [],
     certificates: [],
     projects: [],
+    accounts: [],
   });
   const [summaryVariant, setSummaryVariant] = useState(0);
   const [summaryVariants, setSummaryVariants] = useState([]); // [{ bulletLines:[], pointLines:[], paragraphs:[] }, ...]
@@ -163,6 +167,7 @@ export default function ResumePage() {
             skills: ui.skills || {},
             education: ui.education || [],
             certificates: ui.certificates || [],
+            accounts: ui.accounts || [],
             projects: (projList || []).map((p) => ({
               id: p.id,
               label: p.title,
@@ -191,6 +196,7 @@ export default function ResumePage() {
             skills: {},
             education: [],
             certificates: [],
+            accounts: [],
             projects: (projList || []).map((p) => ({
               id: p.id,
               label: p.title,
@@ -236,6 +242,7 @@ export default function ResumePage() {
         skills: ui.skills || {},
         education: ui.education || [],
         certificates: ui.certificates || [],
+        accounts: ui.accounts || [],
         projects: prev.projects || [],
       }));
       setSummaryVariant(initialVariantIdx);
@@ -431,7 +438,83 @@ export default function ResumePage() {
           <Box className="resume-section">
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ xs: 'center', sm: 'flex-start' }}>
               {state.options.includePhoto ? (
-                <Avatar src={PROFILE_IMG} alt={NAME} sx={{ width: 120, height: 120, border: '2px solid', borderColor: 'divider' }} />
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: { xs: 'center', sm: 'stretch' }, gap: 1, minWidth: { sm: 240 } }}>
+                  <Avatar src={PROFILE_IMG} alt={NAME} sx={{ width: 120, height: 120, border: '2px solid', borderColor: 'divider' }} />
+                  
+                  
+                  {/* Contact section */}
+                  <Box sx={{ width: '100%', mt: 1 }}>
+                    <Box sx={{ borderTop: '1px solid', borderColor: 'divider', mt: 1, mb: 1 }} />
+                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>Contact</Typography>
+                    {(() => {
+                      const formatUrlDisplay = (url) => {
+                        try {
+                          const u = new URL(url);
+                          const host = u.hostname.replace(/^www\./, '');
+                          const path = u.pathname.replace(/\/+$/, '');
+                          return `${host}${path}` || host;
+                        } catch {
+                          return String(url)
+                            .replace(/^https?:\/\//, '')
+                            .replace(/^www\./, '')
+                            .replace(/\/+$/, '');
+                        }
+                      };
+                      const getIcon = (name, iconStr, url) => {
+                        const key = String(iconStr || name || '').toLowerCase();
+                        if (key.includes('git')) return <GitHub fontSize="small" />;
+                        if (key.includes('linkedin')) return <LinkedIn fontSize="small" />;
+                        if (key.includes('twitter') || key === 'x') return <Twitter fontSize="small" />;
+                        if (key.includes('facebook')) return <Facebook fontSize="small" />;
+                        if (key.includes('instagram')) return <Instagram fontSize="small" />;
+                        if (key.includes('website')) return <Website fontSize="small" />;
+                        return <LinkIcon fontSize="small" />;
+                      };
+                      const getTooltip = (name, url) => {
+                        const n = String(name || '').trim();
+                        if (n) return n.charAt(0).toUpperCase() + n.slice(1);
+                        try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return 'Profile'; }
+                      };
+                      const getAriaLabel = (name, url) => {
+                        const t = getTooltip(name, url);
+                        return `Open ${t}`;
+                      };
+                      const items = (state.accounts || [])
+                        .filter((a) => a && a.url)
+                        .map((a) => ({
+                          key: a.id,
+                          url: a.url,
+                          icon: getIcon(a.name, a.icon, a.url),
+                          text: formatUrlDisplay(a.url),
+                          tooltip: getTooltip(a.name, a.url),
+                          ariaLabel: getAriaLabel(a.name, a.url),
+                        }));
+                      return (
+                        <Stack spacing={1}>
+                          {items.map((it) => (
+                            <Stack key={it.key} direction="row" spacing={1} alignItems="center">
+                              <Tooltip title={it.tooltip}>
+                                <IconButton
+                                  component={Link}
+                                  href={it.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  aria-label={it.ariaLabel}
+                                  size="small"
+                                >
+                                  {it.icon}
+                                </IconButton>
+                              </Tooltip>
+                              <Link href={it.url} target="_blank" rel="noreferrer" underline="hover" color="inherit" variant="body2">
+                                {it.text}
+                              </Link>
+                            </Stack>
+                          ))}
+                        </Stack>
+                      );
+                    })()}
+                  </Box>
+                </Box>
               ) : (
                 <Box sx={{ width: 120, height: 120 }} />
               )}

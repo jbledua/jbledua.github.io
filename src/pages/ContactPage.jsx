@@ -17,6 +17,8 @@ import { useState } from 'react';
 import Section from '../components/Section.jsx';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { useRef } from 'react';
+import { SOCIAL } from '../utils/social.js';
+// Note: Contact page currently uses SOCIAL constants. It can be switched to DB-driven accounts when a resume context is chosen.
 
 // TODO: Update these with your actual details.
 const NAME = 'Josiah Ledua';
@@ -30,15 +32,7 @@ const ASSUME_SUCCESS_ON_OPAQUE = import.meta.env.VITE_ASSUME_SUCCESS_ON_OPAQUE =
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
 // Detect Vite dev server to bypass reCAPTCHA locally (it doesn't work on localhost with strict keys)
 const IS_DEV = import.meta.env.DEV;
-// Social links (replace placeholders with your real handles/URLs)
-const SOCIAL = {
-  github: 'https://github.com/jbledua',
-  linkedin: 'https://www.linkedin.com/in/jbledua/',
-  facebook: 'https://www.facebook.com/jbledua',
-  x: 'https://x.com/jbledua',
-  discord: 'https://discordapp.com/users/683827691019173996',
-  instagram: 'https://www.instagram.com/jbledua/',
-};
+// Social links centralized in src/utils/social.js
 // Discord icon temporarily disabled until a server invite link is available.
 // When ready, place assets under public/images (e.g., Discord-Symbol-Black.svg, Discord-Symbol-White.svg)
 // and re-enable the block in the social section below.

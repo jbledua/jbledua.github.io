@@ -151,6 +151,24 @@ export async function getResume(resumeId) {
     summary: null,
   }));
 
+  // Contact accounts for this resume (ordered)
+  const { data: rAccounts, error: raErr } = await supabase
+    .from('resume_accounts')
+    .select('position, label, accounts:accounts(id, name, icon, link)')
+    .eq('resume_id', resumeId)
+    .order('position', { ascending: true });
+  if (raErr) throw raErr;
+  const accounts = (rAccounts || [])
+    .map((row) => ({
+      id: row.accounts?.id,
+      name: row.accounts?.name || '',
+      url: row.accounts?.link || '',
+      icon: row.accounts?.icon || null,
+      label: row.label || null,
+      position: row.position ?? 0,
+    }))
+    .filter((a) => a.id && a.url);
+
   return {
     options: { includePhoto: !!resume.profile_photo_id },
     summaryVariant: 0,
@@ -159,6 +177,7 @@ export async function getResume(resumeId) {
     skills,
     education,
     certificates,
+    accounts,
   };
 }
 
