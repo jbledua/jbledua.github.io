@@ -11,6 +11,7 @@ import Divider from '@mui/material/Divider';
 import FormGroup from '@mui/material/FormGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
+import Switch from '@mui/material/Switch';
 import Avatar from '@mui/material/Avatar';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
@@ -328,7 +329,7 @@ export default function ResumeBuilderPage() {
       <Typography variant="h6" gutterBottom>Options</Typography>
 
       <FormGroup sx={{ mb: 2 }}>
-        <FormControlLabel control={<Checkbox checked={state.options.includePhoto} onChange={toggleIncludePhoto} />} label="Include photo" />
+        <FormControlLabel control={<Switch checked={state.options.includePhoto} onChange={toggleIncludePhoto} />} label="Include photo" />
       </FormGroup>
 
       <FormControl fullWidth size="small" sx={{ mb: 2 }}>
