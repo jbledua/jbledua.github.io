@@ -10,7 +10,7 @@ export async function listResumes() {
   return data ?? [];
 }
 
-// Fetch a single resume and map to UI shape consumed by ResumeBuilderPage
+// Fetch a single resume and map to UI shape consumed by ResumePage
 export async function getResume(resumeId) {
   // Resume core
   const { data: resume, error: rErr } = await supabase

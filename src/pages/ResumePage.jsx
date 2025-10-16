@@ -34,12 +34,13 @@ import { listResumes, getResume } from '../services/resumesService.js';
 import { listProjects } from '../services/projectsService.js';
 import { useDrawer } from '../components/DrawerContext.jsx';
 import QrWithLogo from '../components/QrWithLogo.jsx';
+import ResumeBuilderDrawerContent from '../components/ResumeDrawer.jsx';
 
 // Static identity assets (can be moved to DB later if desired)
 const PROFILE_IMG = '/images/profile.jpg';
 const NAME = 'Josiah Ledua';
 
-export default function ResumeBuilderPage() {
+export default function ResumePage() {
   // UI state sourced from DB; start empty and show graceful messages
   const [state, setState] = useState({
     options: { includePhoto: true },
@@ -325,147 +326,38 @@ export default function ResumeBuilderPage() {
   const toggleIncludePhoto = () => setState((s) => ({ ...s, options: { ...s.options, includePhoto: !s.options.includePhoto } }));
 
   const drawerContent = useMemo(() => (
-    <Box sx={{ width: 320, p: 2 }}>
-      <Typography variant="h6" gutterBottom>Options</Typography>
-
-      <FormGroup sx={{ mb: 2 }}>
-        <FormControlLabel control={<Switch checked={state.options.includePhoto} onChange={toggleIncludePhoto} />} label="Include photo" />
-      </FormGroup>
-
-      <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-        <InputLabel id="summary-variant">Summary Variant</InputLabel>
-        <Select
-          labelId="summary-variant"
-          label="Summary Variant"
-          value={summaryVariant}
-          onChange={(ev) => {
-            const idx = Number(ev.target.value);
-            setSummaryVariant(idx);
-            setState((s) => ({
-              ...s,
-              summaryLines: (summaryFormat === 'bullet' ? (summaryVariants[idx]?.bulletLines || []) : s.summaryLines),
-              summaryParagraphs: (summaryFormat === 'paragraph' ? (summaryVariants[idx]?.paragraphs || []) : s.summaryParagraphs),
-            }));
-          }}
-        >
-          {(summaryVariants || []).map((_, idx) => (
-            <MenuItem key={idx} value={idx}>Summary {idx + 1}</MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-
-      <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-        <InputLabel id="summary-format">Summary Format</InputLabel>
-        <Select
-          labelId="summary-format"
-          label="Summary Format"
-          value={summaryFormat}
-          onChange={(ev) => {
-            const fmt = ev.target.value;
-            setSummaryFormat(fmt);
-            setState((s) => ({
-              ...s,
-              summaryLines: (fmt === 'bullet' ? (summaryVariants[summaryVariant]?.bulletLines || []) : []),
-              summaryParagraphs: (fmt === 'paragraph' ? (summaryVariants[summaryVariant]?.paragraphs || []) : []),
-            }));
-          }}
-        >
-          <MenuItem value="bullet">Bulleted</MenuItem>
-          <MenuItem value="paragraph">Paragraph</MenuItem>
-        </Select>
-      </FormControl>
-
-      <Divider sx={{ my: 1 }} />
-      <Typography variant="subtitle1" gutterBottom>Experience</Typography>
-      <Stack spacing={2}>
-        {state.experiences.map((e) => (
-          <Box key={e.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}>
-            <FormControlLabel control={<Checkbox checked={e.enabled} onChange={() => toggleRoleEnabled(e.id)} />} label={e.label} />
-            <FormControl fullWidth size="small">
-              <InputLabel id={`${e.id}-var`}>Variant</InputLabel>
-              <Select labelId={`${e.id}-var`} label="Variant" value={e.selectedVariant} onChange={(ev) => updateRoleVariant(e.id, Number(ev.target.value))}>
-                {e.variants.map((_, idx) => (
-                  <MenuItem key={idx} value={idx}>Version {idx + 1}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
-        ))}
-      </Stack>
-
-      <Divider sx={{ my: 2 }} />
-      <Typography variant="subtitle1" gutterBottom>Education</Typography>
-      <Stack spacing={2}>
-        {(state.education || []).map((e) => (
-          <Box key={e.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}>
-            <FormControlLabel control={<Checkbox checked={e.enabled} onChange={() => toggleEducationEnabled(e.id)} />} label={e.label} />
-          </Box>
-        ))}
-      </Stack>
-
-      <Divider sx={{ my: 2 }} />
-      <Typography variant="subtitle1" gutterBottom>Certificates</Typography>
-      <Stack spacing={2}>
-        {(state.certificates || []).map((c) => (
-          <Box key={c.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}>
-            <FormControlLabel control={<Checkbox checked={c.enabled} onChange={() => toggleCertificateEnabled(c.id)} />} label={c.label} />
-          </Box>
-        ))}
-      </Stack>
-      <Divider sx={{ my: 2 }} />
-      <Typography variant="subtitle1" gutterBottom>Projects</Typography>
-      <Stack spacing={2}>
-        {(state.projects || []).map((p) => (
-          <Box key={p.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}>
-            <FormControlLabel control={<Checkbox checked={p.enabled} onChange={() => toggleProjectEnabled(p.id)} />} label={p.label} />
-            <Box sx={{ ml: 3 }}>
-              <FormGroup row>
-                <FormControlLabel
-                  control={<Checkbox checked={p.showIcon !== false} onChange={() => toggleProjectShowIcon(p.id)} />}
-                  label="Show icon"
-                />
-                <FormControlLabel
-                  control={<Checkbox checked={p.showMedia !== false} onChange={() => toggleProjectShowMedia(p.id)} />}
-                  label={p.url ? 'Show QR code' : 'Show media'}
-                />
-              </FormGroup>
-            </Box>
-            {(p.tags && p.tags.length > 0) && (
-              <Box sx={{ ml: 3, mt: 0.5 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>Skills</Typography>
-                <FormGroup>
-                  {p.tags.map((t) => {
-                    const id = typeof t === 'string' ? toSlug(t) : t.id;
-                    const label = typeof t === 'string' ? t : t.label;
-                    const checked = typeof t === 'string' ? true : !!t.enabled;
-                    return (
-                      <FormControlLabel
-                        key={id}
-                        control={<Checkbox checked={checked} onChange={() => toggleProjectSkill(p.id, id)} />}
-                        label={label}
-                      />
-                    );
-                  })}
-                </FormGroup>
-              </Box>
-            )}
-          </Box>
-        ))}
-      </Stack>
-      <Typography variant="subtitle1" gutterBottom>Skills</Typography>
-      <Stack spacing={1}>
-        {Object.entries(state.skills).map(([group, items]) => (
-          <Box key={group}>
-            <Typography variant="body1" sx={{ fontWeight: 600, mb: 0.5 }}>{group}</Typography>
-            <FormGroup>
-              {items.map((i) => (
-                <FormControlLabel key={i.id} control={<Checkbox checked={i.enabled} onChange={() => toggleSkill(group, i.id)} />} label={i.label} />
-              ))}
-            </FormGroup>
-          </Box>
-        ))}
-      </Stack>
-    </Box>
+    <ResumeBuilderDrawerContent
+      state={state}
+      summaryVariant={summaryVariant}
+      summaryFormat={summaryFormat}
+      summaryVariants={summaryVariants}
+      onChangeSummaryVariant={(idx) => {
+        setSummaryVariant(idx);
+        setState((s) => ({
+          ...s,
+          summaryLines: (summaryFormat === 'bullet' ? (summaryVariants[idx]?.bulletLines || []) : s.summaryLines),
+          summaryParagraphs: (summaryFormat === 'paragraph' ? (summaryVariants[idx]?.paragraphs || []) : s.summaryParagraphs),
+        }));
+      }}
+      onChangeSummaryFormat={(fmt) => {
+        setSummaryFormat(fmt);
+        setState((s) => ({
+          ...s,
+          summaryLines: (fmt === 'bullet' ? (summaryVariants[summaryVariant]?.bulletLines || []) : []),
+          summaryParagraphs: (fmt === 'paragraph' ? (summaryVariants[summaryVariant]?.paragraphs || []) : []),
+        }));
+      }}
+      toggleIncludePhoto={toggleIncludePhoto}
+      toggleRoleEnabled={toggleRoleEnabled}
+      updateRoleVariant={updateRoleVariant}
+      toggleEducationEnabled={toggleEducationEnabled}
+      toggleCertificateEnabled={toggleCertificateEnabled}
+      toggleProjectEnabled={toggleProjectEnabled}
+      toggleProjectShowIcon={toggleProjectShowIcon}
+      toggleProjectShowMedia={toggleProjectShowMedia}
+      toggleProjectSkill={toggleProjectSkill}
+      toggleSkill={toggleSkill}
+    />
   ), [state, summaryVariant, summaryFormat, summaryVariants]);
 
   // Keep global drawer content in sync with local state whenever it changes

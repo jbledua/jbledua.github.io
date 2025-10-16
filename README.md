@@ -156,7 +156,7 @@ import { listPresets, getPreset } from './src/services/presetsService';
 const presets = await listPresets();
 const presetId = presets[0]?.id;
 const uiState = await getPreset(presetId);
-// uiState matches the shape used by ResumeBuilderPage: { options, summaryVariant, experiences, skills }
+// uiState matches the shape used by ResumePage: { options, summaryVariant, experiences, skills }
 ```
 # React + Vite
 
