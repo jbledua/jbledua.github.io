@@ -32,47 +32,68 @@ with l as (
 insert into public.jobs (id, company, role, type, location_id, start_date, end_date)
 select gen_random_uuid(), company, role, type, loc, start_d, end_d from jobs_src;
 
--- Description blocks for selected jobs (paragraph + bullets)
-with j as (
-  select id, company, role, start_date from public.jobs
+-- Description block for Backslash Designs · Owner
+with job as (
+  select id from public.jobs where company='Backslash Designs' and role='Owner' order by start_date desc nulls last limit 1
+), existing as (
+  select id from public.descriptions
+  where paragraphs[1] = 'Owner of a boutique tech studio delivering managed IT, DevOps, and full‑stack projects for SMBs and non-profits.'
+), ins as (
+  insert into public.descriptions (paragraphs, bullets)
+  select array['Owner of a boutique tech studio delivering managed IT, DevOps, and full‑stack projects for SMBs and non-profits.']::text[],
+         array[
+           'Standardized device provisioning and compliance with Intune/Autopilot; documented DR with Synology backups.',
+           'Containerized services behind Tailscale; built CI/CD with GitHub Actions for static sites and infrastructure repos.',
+           'Designed Supabase schemas and secure APIs; built React/MUI front ends for marketing and internal tools.',
+           'Automated email onboarding and nurture flows with Power Automate and n8n; produced responsive HTML templates.'
+         ]::text[]
+  where not exists (select 1 from existing)
+  returning id
 ), d as (
-  select gen_random_uuid() as id, array['Owner of a boutique tech studio delivering managed IT, DevOps, and full‑stack projects for SMBs and non-profits.']::text[] as paragraphs,
-        array[
-          'Standardized device provisioning and compliance with Intune/Autopilot; documented DR with Synology backups.',
-          'Containerized services behind Tailscale; built CI/CD with GitHub Actions for static sites and infrastructure repos.',
-          'Designed Supabase schemas and secure APIs; built React/MUI front ends for marketing and internal tools.',
-          'Automated email onboarding and nurture flows with Power Automate and n8n; produced responsive HTML templates.'
-        ]::text[] as bullets
+  select id from existing
   union all
-  select gen_random_uuid(), array['Owned reliability, security, and collaboration tooling across a Microsoft 365/Entra ID environment.'],
-        array[
-          'Administered Entra ID, Exchange Online, SharePoint/Teams, and Intune (Windows/iOS) with baseline and Conditional Access policies.',
-          'Hardened endpoints with Defender/EDR; deployed phishing protections and privileged access reviews.',
-          'Implemented data retention, backup, and recovery playbooks with documented RTO/RPO.',
-          'Consolidated Teams/SharePoint information architecture to reduce sprawl and improve permissions hygiene.',
-          'Provided SLA-driven support and clear communications; authored SOPs and reusable runbooks.'
-        ]
-)
-insert into public.descriptions (id, paragraphs, bullets)
-select * from d;
-
--- Link descriptions to jobs (ordered)
-with j as (
-  select id, company, role, start_date from public.jobs
-), d as (
-  select id, 0 as position from public.descriptions order by created_at asc limit 2
-), pairs as (
-  select (select id from j where company='Backslash Designs' and role='Owner' order by start_date desc nulls last limit 1) as job_id,
-        (select id from public.descriptions order by created_at asc limit 1) as description_id, 0 as position
-  union all
-  select (select id from j where company='NorthWind Family Ministries' and role='Information Technology Lead' order by start_date desc nulls last limit 1),
-        (select id from public.descriptions order by created_at asc offset 1 limit 1), 0
+  select id from ins
 )
 insert into public.job_descriptions (job_id, description_id, position)
-select job_id, description_id, position from pairs
+select job.id, d.id, 0
+from job, d
+on conflict do nothing;
+
+-- Description block for NorthWind Family Ministries · Information Technology Lead
+with job as (
+  select id from public.jobs where company='NorthWind Family Ministries' and role='Information Technology Lead' order by start_date desc nulls last limit 1
+), existing as (
+  select id from public.descriptions
+  where paragraphs[1] = 'Owned reliability, security, and collaboration tooling across a Microsoft 365/Entra ID environment.'
+), ins as (
+  insert into public.descriptions (paragraphs, bullets)
+  select array['Owned reliability, security, and collaboration tooling across a Microsoft 365/Entra ID environment.']::text[],
+         array[
+           'Administered Entra ID, Exchange Online, SharePoint/Teams, and Intune (Windows/iOS) with baseline and Conditional Access policies.',
+           'Hardened endpoints with Defender/EDR; deployed phishing protections and privileged access reviews.',
+           'Implemented data retention, backup, and recovery playbooks with documented RTO/RPO.',
+           'Consolidated Teams/SharePoint information architecture to reduce sprawl and improve permissions hygiene.',
+           'Provided SLA-driven support and clear communications; authored SOPs and reusable runbooks.'
+         ]::text[]
+  where not exists (select 1 from existing)
+  returning id
+), d as (
+  select id from existing
+  union all
+  select id from ins
+)
+insert into public.job_descriptions (job_id, description_id, position)
+select job.id, d.id, 0
+from job, d
 on conflict do nothing;
 
 -- Map a few job skills (using existing skills)
+-- Ensure required skills exist for these mappings
+insert into public.skills (id, name)
+select gen_random_uuid(), v.name
+from (values ('Node.js'), ('GitHub Actions')) as v(name)
+where not exists (select 1 from public.skills s where s.name = v.name);
+
 with s as (select id, name from public.skills), j as (select id, company, role, start_date from public.jobs)
 insert into public.job_skills (job_id, skill_id)
 select (select id from j where company='Backslash Designs' and role='Owner' order by start_date desc nulls last limit 1), (select id from s where name='React' limit 1)

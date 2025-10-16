@@ -77,22 +77,26 @@ export async function getResume(resumeId) {
     };
   });
 
-  // Resume skills grouped by skill groups (ordered by bridge position)
+  // Load all skills and mark initial visibility based on resume_skills
   const { data: resumeSkills, error: rsErr } = await supabase
     .from('resume_skills')
-    .select('position, skills(id, name, skill_group_skills(position, skill_groups(id, name)))')
-    .eq('resume_id', resumeId)
-    .order('position', { ascending: true });
+    .select('skill_id')
+    .eq('resume_id', resumeId);
   if (rsErr) throw rsErr;
+  const enabledSet = new Set((resumeSkills || []).map((r) => r.skill_id));
+
+  const { data: allSkills, error: allErr } = await supabase
+    .from('skills')
+    .select('id, name, skill_group_skills(position, skill_groups(id, name))')
+    .order('name', { ascending: true });
+  if (allErr) throw allErr;
 
   const skills = {};
-  (resumeSkills || []).forEach((row) => {
-    const skill = row.skills;
-    if (!skill) return;
-    // Choose the first group (if multiple) for display grouping
-    const group = skill.skill_group_skills?.[0]?.skill_groups?.name || 'Skills';
+  (allSkills || []).forEach((skill) => {
+    // Choose the first group (if multiple) or fallback to 'Other'
+    const group = skill.skill_group_skills?.[0]?.skill_groups?.name || 'Other';
     if (!skills[group]) skills[group] = [];
-    skills[group].push({ id: skill.id, label: skill.name, enabled: true });
+    skills[group].push({ id: skill.id, label: skill.name, enabled: enabledSet.has(skill.id) });
   });
 
   // Education: show all, newest first

@@ -121,34 +121,7 @@ update public.projects set description_id = d.id
 from d
 where title = 'Project-Guidance' and description_id is null;
 
--- Ensure skills exist (insert missing by name)
-insert into public.skills (id, name)
-select gen_random_uuid(), v.name
-from (
-  values
-    ('Docker'),
-    ('n8n'),
-    ('tailscale'),
-    ('RESTful API'),
-    ('rustdesk'),
-    ('rmm'),
-    ('AWS EC2'),
-    ('unity'),
-    ('C#'),
-    ('ECS'),
-    ('DOTS'),
-    ('multiplayer'),
-    ('AWS'),
-    ('React'),
-    ('end-to-end encryption'),
-    ('firebase'),
-    ('messaging'),
-    ('ai'),
-    ('chatbot'),
-    ('angular'),
-    ('openai')
-) as v(name)
-where not exists (select 1 from public.skills s where s.name = v.name);
+-- Skills are seeded and grouped in seed_skills.sql. This file only maps them to projects.
 
 -- Map project skills with explicit positions (idempotent)
 -- Project-Compose-Workflow
@@ -179,7 +152,7 @@ on conflict (project_id, skill_id) do nothing;
 with p as (
   select id from public.projects where title = 'Project-Horizon'
 ), skill_names(name, position) as (
-  values ('unity',0), ('C#',1), ('ECS',2), ('DOTS',3), ('multiplayer',4), ('AWS',5)
+  values ('Unity',0), ('C#',1), ('ECS',2), ('DOTS',3), ('multiplayer',4), ('AWS',5)
 )
 insert into public.project_skills (project_id, skill_id, position)
 select p.id, s.id, skill_names.position
@@ -203,7 +176,7 @@ on conflict (project_id, skill_id) do nothing;
 with p as (
   select id from public.projects where title = 'Project-Guidance'
 ), skill_names(name, position) as (
-  values ('ai',0), ('chatbot',1), ('angular',2), ('openai',3)
+  values ('ai',0), ('chatbot',1), ('Angular',2), ('openai',3)
 )
 insert into public.project_skills (project_id, skill_id, position)
 select p.id, s.id, skill_names.position

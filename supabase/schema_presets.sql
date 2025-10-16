@@ -19,6 +19,16 @@ begin
   if not exists (select 1 from pg_type where typname = 'post_type') then
     create type post_type as enum ('blog','email','linkedin','kb','page','other');
   end if;
+  -- Generic UI enums for visibility controls across entities (projects/jobs/education)
+  if not exists (select 1 from pg_type where typname = 'ui_entity_kind') then
+    create type ui_entity_kind as enum ('project','job','education');
+  end if;
+  if not exists (select 1 from pg_type where typname = 'ui_target_kind') then
+    -- icon: CardHeader avatar or similar
+    -- media: CardMedia (e.g., QR code/cover image)
+    -- skill: specific skill visibility within an entity
+    create type ui_target_kind as enum ('icon','media','skill');
+  end if;
 end $$;
 
 -- ---------- Core lookups ----------
@@ -255,11 +265,15 @@ create table if not exists public.resumes (
   profile_photo_id uuid references public.photos(id) on delete set null,
   style jsonb default '{}'::jsonb,                 -- future theming options
   summary_description_id uuid references public.descriptions(id) on delete set null,
+  visibility_profile_id uuid,                      -- optional: default UI visibility profile
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 create trigger trg_resumes_updated_at before update on public.resumes
 for each row execute function set_updated_at();
+
+-- Optional FK and index for visibility profiles (added after table defined)
+-- Will be created after profiles table is declared below
 
 -- Resume contact info (ordered list of Accounts)
 create table if not exists public.resume_accounts (
@@ -293,6 +307,104 @@ create table if not exists public.resume_projects (
   position int not null default 0,
   primary key (resume_id, project_id)
 );
+
+-- ---------- Generic UI visibility settings ----------
+-- Stores visibility toggles for UI elements in a generic way that can apply to Projects now
+-- and Jobs/Education in the future. Intended to be optional: if no rows exist, defaults apply.
+--
+-- Notes:
+-- - entity_kind: the type of entity (project/job/education).
+-- - entity_id: the id of the entity (projects.id/jobs.id/education.id). No FK due to polymorphism.
+-- - target_kind: the element within that entity (icon/media/skill).
+-- - target_id: for target_kind='skill', references skills.id; otherwise NULL.
+-- - resume_id: optional scoping. When NULL, a global default can be used; when set, applies to a specific resume.
+create table if not exists public.ui_visibility (
+  id uuid primary key default gen_random_uuid(),
+  resume_id uuid references public.resumes(id) on delete cascade,
+  entity_kind ui_entity_kind not null,
+  entity_id uuid not null,
+  target_kind ui_target_kind not null,
+  target_id uuid,
+  visible boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  -- If target_kind='skill' and target_id is provided, it should exist in skills
+  constraint ui_visibility_target_skill_fk
+    foreign key (target_id) references public.skills(id) on delete cascade deferrable initially deferred
+);
+create trigger trg_ui_visibility_updated_at before update on public.ui_visibility
+for each row execute function set_updated_at();
+
+-- Unique composite to prevent duplicates for the same scope and element.
+-- Use a fixed NULL-uuid for uniqueness across nullable fields.
+create unique index if not exists ui_visibility_unique_idx
+on public.ui_visibility (
+  coalesce(resume_id, '00000000-0000-0000-0000-000000000000'::uuid),
+  entity_kind,
+  entity_id,
+  target_kind,
+  coalesce(target_id, '00000000-0000-0000-0000-000000000000'::uuid)
+);
+
+-- Helpful index for fetching all visibilities for an entity in a resume context
+create index if not exists ui_visibility_entity_scope_idx
+on public.ui_visibility (resume_id, entity_kind, entity_id);
+
+-- ---------- Default UI Visibility Profiles (optional) ----------
+-- Profiles define a set of default visibility items that can be applied when loading a resume.
+-- Users can then tweak the UI locally (not persisted) and a reload re-applies the profile.
+create table if not exists public.ui_visibility_profiles (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  description text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create trigger trg_ui_visibility_profiles_updated_at before update on public.ui_visibility_profiles
+for each row execute function set_updated_at();
+
+create table if not exists public.ui_visibility_profile_items (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references public.ui_visibility_profiles(id) on delete cascade,
+  entity_kind ui_entity_kind not null,
+  entity_id uuid not null,
+  target_kind ui_target_kind not null,
+  target_id uuid,
+  visible boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint ui_visibility_profile_items_target_skill_fk
+    foreign key (target_id) references public.skills(id) on delete cascade deferrable initially deferred
+);
+create trigger trg_ui_visibility_profile_items_updated_at before update on public.ui_visibility_profile_items
+for each row execute function set_updated_at();
+
+-- Prevent duplicate items in a profile for the same element
+create unique index if not exists ui_visibility_profile_items_unique_idx
+on public.ui_visibility_profile_items (
+  profile_id,
+  entity_kind,
+  entity_id,
+  target_kind,
+  coalesce(target_id, '00000000-0000-0000-0000-000000000000'::uuid)
+);
+
+-- Helpful lookup index
+create index if not exists ui_visibility_profile_items_scope_idx
+on public.ui_visibility_profile_items (profile_id, entity_kind, entity_id);
+
+-- Link resumes.visibility_profile_id to profiles (optional)
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'resumes_visibility_profile_fk') then
+    alter table public.resumes
+      add constraint resumes_visibility_profile_fk
+      foreign key (visibility_profile_id)
+      references public.ui_visibility_profiles(id)
+      on delete set null;
+  end if;
+end $$;
+create index if not exists resumes_visibility_profile_idx on public.resumes(visibility_profile_id);
 
 -- ---------- Convenience views (optional) ----------
 -- Posts with publish flags and dates in one row
