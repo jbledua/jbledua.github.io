@@ -113,13 +113,17 @@ export default function ResumeBuilderPage() {
               id: p.id,
               label: p.title,
               enabled: true,
+              showIcon: true,
+              showMedia: true,
               url: p.github_url,
               description: (p.descriptions?.paragraphs?.[0] || ''),
               paragraphs: p.descriptions?.paragraphs || [],
+              // Convert tags to toggleable objects
               tags: (p.project_skills || [])
                 .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
                 .map((ps) => ps?.skills?.name)
-                .filter(Boolean),
+                .filter(Boolean)
+                .map((name) => ({ id: toSlug(name), label: name, enabled: true })),
             })),
           });
           setSummaryVariant(initialVariantIdx);
@@ -137,13 +141,16 @@ export default function ResumeBuilderPage() {
               id: p.id,
               label: p.title,
               enabled: true,
+              showIcon: true,
+              showMedia: true,
               url: p.github_url,
               description: (p.descriptions?.paragraphs?.[0] || ''),
               paragraphs: p.descriptions?.paragraphs || [],
               tags: (p.project_skills || [])
                 .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
                 .map((ps) => ps?.skills?.name)
-                .filter(Boolean),
+                .filter(Boolean)
+                .map((name) => ({ id: toSlug(name), label: name, enabled: true })),
             })),
           }));
         }
@@ -216,6 +223,35 @@ export default function ResumeBuilderPage() {
     setState((s) => ({
       ...s,
       projects: (s.projects || []).map((p) => (p.id === id ? { ...p, enabled: !p.enabled } : p)),
+    }));
+  };
+  const toggleProjectShowIcon = (id) => {
+    setState((s) => ({
+      ...s,
+      projects: (s.projects || []).map((p) => (p.id === id ? { ...p, showIcon: !p.showIcon } : p)),
+    }));
+  };
+  const toggleProjectShowMedia = (id) => {
+    setState((s) => ({
+      ...s,
+      projects: (s.projects || []).map((p) => (p.id === id ? { ...p, showMedia: !p.showMedia } : p)),
+    }));
+  };
+  const toggleProjectSkill = (projectId, tagId) => {
+    setState((s) => ({
+      ...s,
+      projects: (s.projects || []).map((p) => {
+        if (p.id !== projectId) return p;
+        const tags = (p.tags || []).map((t) => {
+          // Normalize string tags on-the-fly if any
+          if (typeof t === 'string') {
+            const normalized = { id: toSlug(t), label: t, enabled: true };
+            return normalized.id === tagId ? { ...normalized, enabled: !normalized.enabled } : normalized;
+          }
+          return t.id === tagId ? { ...t, enabled: !t.enabled } : t;
+        });
+        return { ...p, tags };
+      }),
     }));
   };
   const updateRoleVariant = (id, variantIdx) => {
@@ -329,6 +365,37 @@ export default function ResumeBuilderPage() {
         {(state.projects || []).map((p) => (
           <Box key={p.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}>
             <FormControlLabel control={<Checkbox checked={p.enabled} onChange={() => toggleProjectEnabled(p.id)} />} label={p.label} />
+            <Box sx={{ ml: 3 }}>
+              <FormGroup row>
+                <FormControlLabel
+                  control={<Checkbox checked={p.showIcon !== false} onChange={() => toggleProjectShowIcon(p.id)} />}
+                  label="Show icon"
+                />
+                <FormControlLabel
+                  control={<Checkbox checked={p.showMedia !== false} onChange={() => toggleProjectShowMedia(p.id)} />}
+                  label={p.url ? 'Show QR code' : 'Show media'}
+                />
+              </FormGroup>
+            </Box>
+            {(p.tags && p.tags.length > 0) && (
+              <Box sx={{ ml: 3, mt: 0.5 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>Skills</Typography>
+                <FormGroup>
+                  {p.tags.map((t) => {
+                    const id = typeof t === 'string' ? toSlug(t) : t.id;
+                    const label = typeof t === 'string' ? t : t.label;
+                    const checked = typeof t === 'string' ? true : !!t.enabled;
+                    return (
+                      <FormControlLabel
+                        key={id}
+                        control={<Checkbox checked={checked} onChange={() => toggleProjectSkill(p.id, id)} />}
+                        label={label}
+                      />
+                    );
+                  })}
+                </FormGroup>
+              </Box>
+            )}
           </Box>
         ))}
       </Stack>
@@ -525,17 +592,19 @@ export default function ResumeBuilderPage() {
                       }}
                     >
                       <CardHeader
-                        avatar={p.url ? (
-                          <Avatar
-                            src={theme?.palette?.mode === 'dark' ? '/images/github-mark-white.png' : '/images/github-mark.png'}
-                            alt="GitHub logo"
-                            sx={{ bgcolor: 'transparent' }}
-                          />
-                        ) : (
-                          <Avatar sx={{ bgcolor: 'primary.main', color: 'primary.contrastText' }}>
-                            {p.label ? p.label.charAt(0).toUpperCase() : '?'}
-                          </Avatar>
-                        )}
+                        avatar={p.showIcon !== false ? (
+                          p.url ? (
+                            <Avatar
+                              src={theme?.palette?.mode === 'dark' ? '/images/github-mark-white.png' : '/images/github-mark.png'}
+                              alt="GitHub logo"
+                              sx={{ bgcolor: 'transparent' }}
+                            />
+                          ) : (
+                            <Avatar sx={{ bgcolor: 'primary.main', color: 'primary.contrastText' }}>
+                              {p.label ? p.label.charAt(0).toUpperCase() : '?'}
+                            </Avatar>
+                          )
+                        ) : undefined}
                         title={p.label}
                         titleTypographyProps={{ variant: 'subtitle1' }}
 
@@ -546,27 +615,29 @@ export default function ResumeBuilderPage() {
                         )}
                         subheaderTypographyProps={{ variant: 'caption' }}
                       />
-                      <CardMedia
-                        sx={{ height: 120, bgcolor: 'background.default', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 1 }}
-                      >
-                        {p.url ? (
-                          <QrWithLogo
-                            value={p.url}
-                            size={150}
-                            logoSrc={theme?.palette?.mode === 'dark' ? '/images/github-mark-white.png' : '/images/github-mark.png'}
-                            logoSizeRatio={0.13}
-                            withLogo={false}
-                          />
-                        ) : (
-                          <Box
-                            component="img"
-                            src={theme?.palette?.mode === 'dark' ? '/images/github-mark-white.png' : '/images/github-mark.png'}
-                            alt={`${p.label} logo`}
-                            loading="lazy"
-                            sx={{ maxHeight: 40, maxWidth: '50%', objectFit: 'contain' }}
-                          />
-                        )}
-                      </CardMedia>
+                      {p.showMedia !== false && (
+                        <CardMedia
+                          sx={{ height: 120, bgcolor: 'background.default', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 1 }}
+                        >
+                          {p.url ? (
+                            <QrWithLogo
+                              value={p.url}
+                              size={150}
+                              logoSrc={theme?.palette?.mode === 'dark' ? '/images/github-mark-white.png' : '/images/github-mark.png'}
+                              logoSizeRatio={0.13}
+                              withLogo={false}
+                            />
+                          ) : (
+                            <Box
+                              component="img"
+                              src={theme?.palette?.mode === 'dark' ? '/images/github-mark-white.png' : '/images/github-mark.png'}
+                              alt={`${p.label} logo`}
+                              loading="lazy"
+                              sx={{ maxHeight: 40, maxWidth: '50%', objectFit: 'contain' }}
+                            />
+                          )}
+                        </CardMedia>
+                      )}
                       <CardContent sx={{ flexGrow: 1 }}>                    
                         {p.description || (p.paragraphs && p.paragraphs.length) ? (
                           <Typography variant="body2" color="text.secondary" sx={{ mb: (p.tags && p.tags.length) ? 1 : 0 }}>
@@ -575,9 +646,12 @@ export default function ResumeBuilderPage() {
                         ) : null}
                         {(p.tags && p.tags.length > 0) && (
                           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                            {p.tags.map((t) => (
-                              <Chip key={t} label={t} size="small" variant="outlined" />
-                            ))}
+                            {(p.tags || [])
+                              .filter((t) => (typeof t === 'string') ? true : t.enabled)
+                              .map((t) => (typeof t === 'string' ? t : t.label))
+                              .map((t) => (
+                                <Chip key={t} label={t} size="small" variant="outlined" />
+                              ))}
                           </Box>
                         )}
                       </CardContent>
