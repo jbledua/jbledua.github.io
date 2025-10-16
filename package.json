@@ -20,6 +20,7 @@
     "react-google-recaptcha": "^2.1.0",
     "react-markdown": "^9.0.3",
     "react-router-dom": "^7.9.4",
+    "qrcode": "^1.5.4",
     "remark-gfm": "^4.0.0"
   },
   "devDependencies": {

@@ -31,6 +31,7 @@ import Alert from '@mui/material/Alert';
 import { listResumes, getResume } from '../services/resumesService.js';
 import { listProjects } from '../services/projectsService.js';
 import { useDrawer } from '../components/DrawerContext.jsx';
+import QrWithLogo from '../components/QrWithLogo.jsx';
 
 // Static identity assets (can be moved to DB later if desired)
 const PROFILE_IMG = '/images/profile.jpg';
@@ -524,25 +525,47 @@ export default function ResumeBuilderPage() {
                       }}
                     >
                       <CardHeader
+                        avatar={p.url ? (
+                          <Avatar
+                            src={theme?.palette?.mode === 'dark' ? '/images/github-mark-white.png' : '/images/github-mark.png'}
+                            alt="GitHub logo"
+                            sx={{ bgcolor: 'transparent' }}
+                          />
+                        ) : (
+                          <Avatar sx={{ bgcolor: 'primary.main', color: 'primary.contrastText' }}>
+                            {p.label ? p.label.charAt(0).toUpperCase() : '?'}
+                          </Avatar>
+                        )}
                         title={p.label}
                         titleTypographyProps={{ variant: 'subtitle1' }}
+
                         subheader={p.url && (
                           <a href={p.url} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>
-                            {p.url.replace(/^https?:\/\//, '')}
+                            {p.url.replace(/^https?:\/\//, '').replace(/github\.com\//, '')}
                           </a>
                         )}
                         subheaderTypographyProps={{ variant: 'caption' }}
                       />
                       <CardMedia
-                        sx={{ height: 96, bgcolor: 'background.default', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 1 }}
+                        sx={{ height: 120, bgcolor: 'background.default', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 1 }}
                       >
-                        <Box
-                          component="img"
-                          src={theme?.palette?.mode === 'dark' ? '/images/github-mark-white.png' : '/images/github-mark.png'}
-                          alt={`${p.label} logo`}
-                          loading="lazy"
-                          sx={{ maxHeight: 40, maxWidth: '50%', objectFit: 'contain' }}
-                        />
+                        {p.url ? (
+                          <QrWithLogo
+                            value={p.url}
+                            size={150}
+                            logoSrc={theme?.palette?.mode === 'dark' ? '/images/github-mark-white.png' : '/images/github-mark.png'}
+                            logoSizeRatio={0.13}
+                            withLogo={false}
+                          />
+                        ) : (
+                          <Box
+                            component="img"
+                            src={theme?.palette?.mode === 'dark' ? '/images/github-mark-white.png' : '/images/github-mark.png'}
+                            alt={`${p.label} logo`}
+                            loading="lazy"
+                            sx={{ maxHeight: 40, maxWidth: '50%', objectFit: 'contain' }}
+                          />
+                        )}
                       </CardMedia>
                       <CardContent sx={{ flexGrow: 1 }}>                    
                         {p.description || (p.paragraphs && p.paragraphs.length) ? (
