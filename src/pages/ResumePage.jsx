@@ -33,6 +33,7 @@ import Alert from '@mui/material/Alert';
 import { listResumes, getResume } from '../services/resumesService.js';
 import { onAuthStateChange, signInWithMagicLink, signOut, getCurrentSession } from '../services/authService.js';
 import { listProjects } from '../services/projectsService.js';
+import { getPublicStorageUrl } from '../services/supabaseClient.js';
 import { useDrawer } from '../components/DrawerContext.jsx';
 import QrWithLogo from '../components/QrWithLogo.jsx';
 import ResumeBuilderDrawerContent from '../components/ResumeDrawer.jsx';
@@ -187,6 +188,8 @@ export default function ResumePage() {
               showIcon: true,
               showMedia: true,
               url: p.github_url,
+              iconLight: p?.project_icon_light?.file_path ? getPublicStorageUrl(p.project_icon_light.file_path) : null,
+              iconDark: p?.project_icon_dark?.file_path ? getPublicStorageUrl(p.project_icon_dark.file_path) : null,
               description: (p.descriptions?.paragraphs?.[0] || ''),
               paragraphs: p.descriptions?.paragraphs || [],
               // Convert tags to toggleable objects
@@ -216,6 +219,8 @@ export default function ResumePage() {
               showIcon: true,
               showMedia: true,
               url: p.github_url,
+              iconLight: p?.project_icon_light?.file_path ? getPublicStorageUrl(p.project_icon_light.file_path) : null,
+              iconDark: p?.project_icon_dark?.file_path ? getPublicStorageUrl(p.project_icon_dark.file_path) : null,
               description: (p.descriptions?.paragraphs?.[0] || ''),
               paragraphs: p.descriptions?.paragraphs || [],
               tags: (p.project_skills || [])
@@ -678,6 +683,7 @@ export default function ResumePage() {
                         display: 'flex',
                         flexDirection: 'column',
                         height: '100%',
+                        padding: 1,
                         borderColor: 'divider',
                         transition: (theme) => theme.transitions.create(
                           ['box-shadow', 'transform', 'border-color'],
@@ -693,10 +699,11 @@ export default function ResumePage() {
                     >
                       <CardHeader
                         avatar={p.showIcon !== false ? (
-                          p.url ? (
+                          p.url || p.iconLight || p.iconDark ? (
                             <Avatar
-                              src={theme?.palette?.mode === 'dark' ? '/images/github-mark-white.png' : '/images/github-mark.png'}
-                              alt="GitHub logo"
+                              src={(theme?.palette?.mode === 'dark' ? (p.iconDark || p.iconLight) : (p.iconLight || p.iconDark))
+                                || (theme?.palette?.mode === 'dark' ? '/images/github-mark-white.png' : '/images/github-mark.png')}
+                              alt={`${p.label} icon`}
                               sx={{ bgcolor: 'transparent' }}
                             />
                           ) : (
@@ -706,14 +713,16 @@ export default function ResumePage() {
                           )
                         ) : undefined}
                         title={p.label}
-                        titleTypographyProps={{ variant: 'subtitle1' }}
+                        slotProps={{
+                          title: { variant: 'subtitle2' },
+                          subheader: { variant: 'caption', sx: { fontSize: '0.7rem' } },
+                        }}
 
                         subheader={p.url && (
                           <a href={p.url} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>
                             {p.url.replace(/^https?:\/\//, '').replace(/github\.com\//, '')}
                           </a>
                         )}
-                        subheaderTypographyProps={{ variant: 'caption' }}
                       />
                       {p.showMedia !== false && (
                         <CardMedia
@@ -723,14 +732,16 @@ export default function ResumePage() {
                             <QrWithLogo
                               value={p.url}
                               size={150}
-                              logoSrc={theme?.palette?.mode === 'dark' ? '/images/github-mark-white.png' : '/images/github-mark.png'}
+                              logoSrc={(theme?.palette?.mode === 'dark' ? (p.iconDark || p.iconLight) : (p.iconLight || p.iconDark))
+                                || (theme?.palette?.mode === 'dark' ? '/images/github-mark-white.png' : '/images/github-mark.png')}
                               logoSizeRatio={0.13}
                               withLogo={false}
                             />
                           ) : (
                             <Box
                               component="img"
-                              src={theme?.palette?.mode === 'dark' ? '/images/github-mark-white.png' : '/images/github-mark.png'}
+                              src={(theme?.palette?.mode === 'dark' ? (p.iconDark || p.iconLight) : (p.iconLight || p.iconDark))
+                                || (theme?.palette?.mode === 'dark' ? '/images/github-mark-white.png' : '/images/github-mark.png')}
                               alt={`${p.label} logo`}
                               loading="lazy"
                               sx={{ maxHeight: 40, maxWidth: '50%', objectFit: 'contain' }}

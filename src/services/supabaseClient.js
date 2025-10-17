@@ -17,3 +17,18 @@ export const supabase = createClient(
   SUPABASE_URL ?? 'https://example.supabase.co',
   SUPABASE_ANON_KEY ?? 'public-anon-key-placeholder'
 );
+
+// Build a public URL for a given storage file path if using public buckets.
+// Accepts values like 'public/media/logo.png'. Returns absolute URL or the input if malformed.
+export function getPublicStorageUrl(filePath) {
+  try {
+    if (!filePath || typeof filePath !== 'string') return null;
+    const base = SUPABASE_URL ?? '';
+    if (!base) return filePath;
+    // Supabase public URL pattern: {url}/storage/v1/object/public/{filePath}
+    const trimmed = filePath.replace(/^\/+/, '');
+    return `${base.replace(/\/$/, '')}/storage/v1/object/public/${trimmed}`;
+  } catch {
+    return filePath;
+  }
+}

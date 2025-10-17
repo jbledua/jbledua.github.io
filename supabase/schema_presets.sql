@@ -144,12 +144,35 @@ create table if not exists public.projects (
   github_url text,
   website_url text,
   cover_photo_id uuid references public.photos(id) on delete set null,
+  -- DEPRECATED: legacy single icon reference
+  project_icon_id uuid references public.photos(id) on delete set null,
+  -- New: separate light/dark icon variants
+  project_icon_light_id uuid references public.photos(id) on delete set null,
+  project_icon_dark_id uuid references public.photos(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 create index if not exists projects_title_idx on public.projects using gin (title gin_trgm_ops);
 create trigger trg_projects_updated_at before update on public.projects
 for each row execute function set_updated_at();
+
+-- Backfill for existing databases where the table already exists
+alter table if exists public.projects
+  add column if not exists project_icon_id uuid references public.photos(id) on delete set null;
+
+-- Add new light/dark icon columns for projects (safe for existing DBs)
+alter table if exists public.projects
+  add column if not exists project_icon_light_id uuid references public.photos(id) on delete set null,
+  add column if not exists project_icon_dark_id uuid references public.photos(id) on delete set null;
+
+-- Backfill: if legacy project_icon_id is set and new columns are null, copy it to both
+update public.projects
+set project_icon_light_id = coalesce(project_icon_light_id, project_icon_id)
+where project_icon_id is not null and project_icon_light_id is null;
+
+update public.projects
+set project_icon_dark_id = coalesce(project_icon_dark_id, project_icon_id)
+where project_icon_id is not null and project_icon_dark_id is null;
 
 create table if not exists public.project_skills (
   project_id uuid references public.projects(id) on delete cascade,

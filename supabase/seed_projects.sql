@@ -184,3 +184,35 @@ from p, skill_names
 join public.skills s on s.name = skill_names.name
 on conflict (project_id, skill_id) do nothing;
 
+-- Set Project-Horizon icons (light/dark)
+-- Upsert photos for provided storage paths, then link them to the project.
+with dark_photo as (
+  insert into public.photos (id, title, file_path, alt)
+  values (
+    gen_random_uuid(),
+    'Project-Horizon Logo (Dark)',
+    'photos/projects/Horizon-Logo-Dark.png',
+    'Project-Horizon logo (dark)'
+  )
+  on conflict (file_path) do update set title = excluded.title, alt = excluded.alt
+  returning id
+), light_photo as (
+  insert into public.photos (id, title, file_path, alt)
+  values (
+    gen_random_uuid(),
+    'Project-Horizon Logo (Light)',
+    'photos/projects/Horizon-Logo-Light.png',
+    'Project-Horizon logo (light)'
+  )
+  on conflict (file_path) do update set title = excluded.title, alt = excluded.alt
+  returning id
+), proj as (
+  select id from public.projects where title = 'Project-Horizon'
+)
+update public.projects p
+set
+  project_icon_dark_id = coalesce(p.project_icon_dark_id, (select id from dark_photo)),
+  project_icon_light_id = coalesce(p.project_icon_light_id, (select id from light_photo))
+from proj
+where p.id = proj.id;
+

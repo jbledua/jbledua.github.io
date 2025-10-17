@@ -21,7 +21,7 @@ export default function NavBar() {
     const handleClose = () => setDrawerOpen(false);
 
     return (
-        <AppBar position="sticky" color="default" elevation={0}>
+        <AppBar position="sticky" color="default" elevation={3}>
         <Toolbar>
             <Typography variant="h6" sx={{ flexGrow: 1 }}>
             <Link component={RouterLink} to="/" underline="none" color="inherit">
