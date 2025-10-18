@@ -475,7 +475,7 @@ export default function ResumePage() {
                   {/* Contact section */}
                   <Box sx={{ width: '100%', mt: 1 }}>
                     <Divider sx={{ mb: 1 }} />
-                    <Typography variant="h6" gutterBottom>Summary</Typography>
+                    <Typography variant="h6" gutterBottom>Contact</Typography>
                     {(() => {
                       const isAuthed = !!session;
                       const formatUrlDisplay = (url) => {
