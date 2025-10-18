@@ -1,3 +1,4 @@
+-- Seed_Accounts.sql
 -- Seed common social/contact accounts
 -- Idempotent: inserts only when an account with the same name doesn't already exist
 

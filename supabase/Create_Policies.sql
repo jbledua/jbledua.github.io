@@ -1,12 +1,13 @@
--- Accounts authorization via RLS and allowlist
--- This script is idempotent: safe to run multiple times.
+-- Create_Policies.sql
+-- Centralize RLS enablement and policies across public tables. Idempotent where possible.
+-- Supabase auth schema is not modified here; this config references auth.uid() and JWT email.
 
--- 1) Ensure requires_auth column exists on public.accounts (in case not applied elsewhere)
+-- ---------- Accounts RLS ----------
+-- Ensure requires_auth column exists (legacy safety)
 do $$
 begin
   if not exists (
-    select 1
-    from information_schema.columns
+    select 1 from information_schema.columns
     where table_schema = 'public'
       and table_name   = 'accounts'
       and column_name  = 'requires_auth'
@@ -16,17 +17,16 @@ begin
   end if;
 end $$;
 
--- 2) Allowlist table of authorized users (by user_id or email)
+-- Allowlist table (created in Create_Schema; keep here for safety)
 create table if not exists public.authorized_users (
   user_id uuid unique,
   email   text unique
 );
 
--- 3) Enable row level security on accounts
+-- Enable RLS on accounts
 alter table public.accounts enable row level security;
 
--- 4) Policies
--- Use drop-if-exists for idempotency to avoid DO/EXECUTE issues in some runners
+-- Policies
 drop policy if exists "accounts_public_read" on public.accounts;
 create policy "accounts_public_read"
 on public.accounts
@@ -47,8 +47,6 @@ using (
   )
 );
 
--- Optional helper: seed your own UID/email into the allowlist (uncomment & replace values)
--- insert into public.authorized_users (user_id) values ('00000000-0000-0000-0000-000000000000')
---   on conflict (user_id) do nothing;
--- insert into public.authorized_users (email) values ('you@example.com')
---   on conflict (email) do nothing;
+-- Optional: Service role bypass (uncomment if desired)
+-- drop policy if exists "accounts_service_all" on public.accounts;
+-- create policy "accounts_service_all" on public.accounts for all to service_role using (true) with check (true);

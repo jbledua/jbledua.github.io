@@ -1,3 +1,4 @@
+-- Seed_Resumes.sql
 -- Seed a minimal resume using new schema: resumes + resume_* links
 
 -- Create a profile photo placeholder
@@ -5,7 +6,7 @@ insert into public.photos (id, title, file_path, alt)
 values (gen_random_uuid(), 'Profile', 'public/media/profile.jpg', 'Profile photo')
 on conflict do nothing;
 
--- Accounts are seeded in seed_accounts.sql
+-- Accounts are seeded in Seed_Accounts.sql
 
 -- Create a summary description
 with s as (

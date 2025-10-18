@@ -1,3 +1,4 @@
+-- Seed_Posts.sql
 -- Optional Posts/tags seed for testing new schema
 
 -- Ensure tag types exist (inserted by schema, but keep idempotent)

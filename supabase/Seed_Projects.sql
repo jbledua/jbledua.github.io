@@ -1,3 +1,4 @@
+-- Seed_Projects.sql
 -- Projects seed (new schema uses description_id + project_skills bridge)
 
 -- Seed projects from ProjectsPage.jsx links (idempotent by title)
@@ -121,7 +122,7 @@ update public.projects set description_id = d.id
 from d
 where title = 'Project-Guidance' and description_id is null;
 
--- Skills are seeded and grouped in seed_skills.sql. This file only maps them to projects.
+-- Skills are seeded and grouped in Seed_Skills.sql. This file only maps them to projects.
 
 -- Map project skills with explicit positions (idempotent)
 -- Project-Compose-Workflow
@@ -215,4 +216,3 @@ set
   project_icon_light_id = coalesce(p.project_icon_light_id, (select id from light_photo))
 from proj
 where p.id = proj.id;
-

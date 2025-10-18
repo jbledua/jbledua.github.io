@@ -1,3 +1,4 @@
+-- Seed_Certificates.sql
 
 -- Seed data for certificates table
 insert into public.certificates (id, name, issuer, issue_date, expiry_date, credential_id, credential_url)

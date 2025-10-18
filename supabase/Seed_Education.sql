@@ -1,3 +1,5 @@
+-- Seed_Education.sql
+
 -- Ensure a default location exists
 insert into public.locations (id, country, region, city)
 values (gen_random_uuid(), 'Canada', 'Ontario', 'Thunder Bay')

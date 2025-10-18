@@ -440,7 +440,6 @@ export default function ResumePage() {
               No resumes found.
             </Typography>
           )}
-          {/* Auth controls moved to NavBar/MobileDrawer */}
         </Stack>
         <Tooltip title="Download PDF">
           <IconButton color="primary" onClick={handleDownload} aria-label="Download resume">

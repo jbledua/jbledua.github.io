@@ -1,27 +1,37 @@
-# Database Seeding (new schema)
+# Database setup and seeding (consolidated)
 
-The database schema has been upgraded to a more flexible content model with locations, skills (+ groups), descriptions, jobs, projects, posts, and resumes.
+This folder ships a single schema file and a single policies file, followed by individual `Seed_[Data].sql` files.
 
-Run the seed files in this order:
+Tables include: locations, skills (+ groups), descriptions, accounts (with `requires_auth`), photos, jobs, projects, education, certificates, posts (+ tags), resumes, and generic UI visibility. Auth tables are managed by Supabase and not created here.
 
-1) seed_skills.sql
+## Order to run files
+
+1) Create_Schema.sql
+   - Creates extensions, helper functions, enums, all public tables, indexes, triggers, views.
+2) Create_Policies.sql
+   - Enables RLS and sets policies (currently for `public.accounts` with an allowlist).
+
+Then run seed files in this order:
+
+3) Seed_Skills.sql
    - Inserts skills by name and groups, and maps them via `skill_group_skills` with positions.
-2) seed_experience.sql
+4) Seed_Accounts.sql
+   - Inserts social/contact accounts. Private ones are flagged with `requires_auth = true`.
+5) Seed_Experience.sql
    - Inserts locations and jobs; adds description blocks and links them via `job_descriptions`; maps a few `job_skills`.
-3) seed_education.sql
+6) Seed_Education.sql
    - Inserts education rows linked to a default location.
-4) seed_certificates.sql
-   - Inserts certificates (uses new `expiry_date` column).
-5) seed_projects.sql
-   - Inserts portfolio projects (title + GitHub URL).
-6) seed_posts.sql (optional)
+7) Seed_Certificates.sql
+   - Inserts certificates (with optional `expiry_date`).
+8) Seed_Projects.sql
+   - Inserts portfolio projects and maps skills; also upserts project icon photos.
+9) Seed_Posts.sql (optional)
    - Adds a sample post and ensures tag types exist.
-7) seed_resumes.sql
+10) Seed_Resumes.sql (run last)
    - Creates a default resume with a profile photo, contact accounts, and links jobs/skills/projects.
 
 Notes
-- The previous preset-based seeds (`seed_presets_links.sql`, `seed_summaries.sql`) are deprecated and no longer referenced by `seed_master.sql`.
-- Scripts are idempotent-ish but not fully; they use basic `on conflict do nothing` where reasonable.
+- Scripts are idempotent-ish (use `on conflict do nothing` where reasonable) but are not intended as migration history.
 - Ensure extensions are enabled: `pgcrypto` and `pg_trgm` are created in the schema file.
 
 ## One-command seeding
@@ -50,4 +60,11 @@ $env:DATABASE_URL = "postgresql://USER:PASSWORD@HOST:PORT/DB?sslmode=require"
 ./supabase/seed.ps1 -DatabaseUrl "postgresql://USER:PASSWORD@HOST:PORT/DB?sslmode=require"
 ```
 
-Note: The Supabase web SQL editor does not support `\i` include directives. If you prefer running inside the web editor, paste and execute each file in the documented order above.
+Linux/macOS note: The master script also works from bash:
+
+```bash
+export DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DB?sslmode=require"
+psql "$DATABASE_URL" -f ./supabase/seed_master.sql
+```
+
+Supabase SQL editor: It does not support `\i` include directives. Paste and execute each file in the order above.

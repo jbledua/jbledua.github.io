@@ -1,4 +1,9 @@
--- Extensions
+-- Create_Schema.sql
+-- One-stop schema for public content (locations, skills, groups, descriptions, accounts, photos,
+-- jobs, projects, posts, resumes, UI visibility) and helpers. Auth tables live in Supabase's
+-- auth schema and are not created here. This file is idempotent where possible.
+
+-- ---------- Extensions ----------
 create extension if not exists pgcrypto;       -- gen_random_uuid()
 create extension if not exists pg_trgm;        -- fuzzy search helpers
 
@@ -87,11 +92,32 @@ create table if not exists public.accounts (
   name text not null,                 -- e.g., GitHub, LinkedIn, Website
   icon text,                          -- icon name or url
   link text not null,
+  requires_auth boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 create trigger trg_accounts_updated_at before update on public.accounts
 for each row execute function set_updated_at();
+
+-- Safety: add requires_auth if table existed previously without it
+do $$
+begin
+  if exists (
+    select 1 from information_schema.tables
+    where table_schema='public' and table_name='accounts'
+  ) and not exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='accounts' and column_name='requires_auth'
+  ) then
+    alter table public.accounts add column requires_auth boolean not null default false;
+  end if;
+end $$;
+
+-- Allowlist for accessing private accounts (referenced by policies)
+create table if not exists public.authorized_users (
+  user_id uuid unique,
+  email   text unique
+);
 
 -- Photos (reference Supabase storage path)
 create table if not exists public.photos (
@@ -278,9 +304,6 @@ create table if not exists public.post_tags (
   primary key (post_id, tag_id)
 );
 
--- Optional: map posts to client organizations without tags (if you prefer)
--- Using tags with tag_type 'client' should be enough, but you can add a dedicated table later if needed.
-
 -- ---------- Resumes ----------
 create table if not exists public.resumes (
   id uuid primary key default gen_random_uuid(),
@@ -294,9 +317,6 @@ create table if not exists public.resumes (
 );
 create trigger trg_resumes_updated_at before update on public.resumes
 for each row execute function set_updated_at();
-
--- Optional FK and index for visibility profiles (added after table defined)
--- Will be created after profiles table is declared below
 
 -- Resume contact info (ordered list of Accounts)
 create table if not exists public.resume_accounts (
@@ -334,13 +354,6 @@ create table if not exists public.resume_projects (
 -- ---------- Generic UI visibility settings ----------
 -- Stores visibility toggles for UI elements in a generic way that can apply to Projects now
 -- and Jobs/Education in the future. Intended to be optional: if no rows exist, defaults apply.
---
--- Notes:
--- - entity_kind: the type of entity (project/job/education).
--- - entity_id: the id of the entity (projects.id/jobs.id/education.id). No FK due to polymorphism.
--- - target_kind: the element within that entity (icon/media/skill).
--- - target_id: for target_kind='skill', references skills.id; otherwise NULL.
--- - resume_id: optional scoping. When NULL, a global default can be used; when set, applies to a specific resume.
 create table if not exists public.ui_visibility (
   id uuid primary key default gen_random_uuid(),
   resume_id uuid references public.resumes(id) on delete cascade,
@@ -437,22 +450,5 @@ select
   (p.status = 'published' and p.posted is true) as is_public
 from public.posts p;
 
--- ---------- (Optional) RLS suggestions ----------
--- Enable RLS per table then:
---   - Allow anonymous SELECT on published posts only
---   - Restrict INSERT/UPDATE/DELETE to service role (via Supabase policies)
--- Example (commented):
-/*
-alter table public.posts enable row level security;
-
-create policy "Anon can read published posts"
-on public.posts for select
-to anon
-using (status = 'published' and posted = true);
-
-create policy "Service role full access"
-on public.posts for all
-to service_role
-using (true)
-with check (true);
-*/
+-- Note: RLS enablement and policies are intentionally left out of this file.
+-- See Create_Policies.sql to enable row level security and define access policies.
