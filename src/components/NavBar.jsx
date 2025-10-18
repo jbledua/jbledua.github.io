@@ -11,14 +11,44 @@ import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { useColorMode } from '../theme/ColorModeProvider.jsx';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import MobileDrawer from './MobileDrawer.jsx';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import AccountCircle from '@mui/icons-material/AccountCircle';
+import Divider from '@mui/material/Divider';
+import { getCurrentSession, onAuthStateChange, signOut } from '../services/authService.js';
+import { useNavigate } from 'react-router-dom';
 
 export default function NavBar() {
     const { mode, toggleColorMode } = useColorMode();
     const [drawerOpen, setDrawerOpen] = useState(false);
+    const [session, setSession] = useState(null);
+    const [accountAnchor, setAccountAnchor] = useState(null);
+    const navigate = useNavigate();
     const handleOpen = () => setDrawerOpen(true);
     const handleClose = () => setDrawerOpen(false);
+    const handleAccountOpen = (e) => setAccountAnchor(e.currentTarget);
+    const handleAccountClose = () => setAccountAnchor(null);
+
+    useEffect(() => {
+        let unsub = () => {};
+        getCurrentSession().then((s) => setSession(s)).catch(() => {}).finally(() => {
+            unsub = onAuthStateChange((s) => setSession(s));
+        });
+        return () => unsub?.();
+    }, []);
+
+    const handleLogout = async () => {
+        try {
+            await signOut();
+            handleAccountClose();
+            handleClose();
+            navigate('/', { replace: true });
+        } catch (e) {
+            // noop; could show toast/snackbar in future
+        }
+    };
 
     return (
         <AppBar position="sticky" color="default" elevation={3}>
@@ -45,6 +75,32 @@ export default function NavBar() {
             <IconButton onClick={toggleColorMode} color="inherit" aria-label="Toggle theme">
                 {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
             </IconButton>
+            {session && (
+                <>
+                <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+                <IconButton
+                    color="inherit"
+                    aria-label="Account menu"
+                    onClick={handleAccountOpen}
+                    size="large"
+                >
+                    <AccountCircle />
+                </IconButton>
+                <Menu
+                    anchorEl={accountAnchor}
+                    open={Boolean(accountAnchor)}
+                    onClose={handleAccountClose}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                >
+                    <MenuItem disabled>
+                        {session?.user?.email || 'Account'}
+                    </MenuItem>
+                    <Divider />
+                    <MenuItem onClick={handleLogout}>Logout</MenuItem>
+                </Menu>
+                </>
+            )}
             </Box>
             {/* Mobile nav toggle */}
             <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center', gap: 1 }}>
@@ -60,7 +116,7 @@ export default function NavBar() {
             </IconButton>
             </Box>
         </Toolbar>
-                <MobileDrawer open={drawerOpen} onClose={handleClose} />
+                <MobileDrawer open={drawerOpen} onClose={handleClose} session={session} onLogout={handleLogout} />
         </AppBar>
     );
 }

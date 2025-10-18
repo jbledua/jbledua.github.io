@@ -31,7 +31,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import { Download, Tune } from '@mui/icons-material';
 import Alert from '@mui/material/Alert';
 import { listResumes, getResume } from '../services/resumesService.js';
-import { onAuthStateChange, signInWithMagicLink, signOut, getCurrentSession } from '../services/authService.js';
+import { onAuthStateChange, signInWithMagicLink, getCurrentSession } from '../services/authService.js';
 import { listProjects } from '../services/projectsService.js';
 import { getPublicStorageUrl } from '../services/supabaseClient.js';
 import { useDrawer } from '../components/DrawerContext.jsx';
@@ -440,19 +440,7 @@ export default function ResumePage() {
               No resumes found.
             </Typography>
           )}
-          {/* Simple auth controls */}
-          <Box sx={{ display: 'inline-flex', alignItems: 'center', ml: 1 }}>
-            {session ? (
-              <Button size="small" onClick={() => signOut()}>Sign out</Button>
-            ) : (
-              <Tooltip title="Sign in to view private contact info">
-                <Button size="small" onClick={() => {
-                  const email = prompt('Enter your email for a magic link:');
-                  if (email) signInWithMagicLink(email).catch((e) => console.error(e));
-                }}>Sign in</Button>
-              </Tooltip>
-            )}
-          </Box>
+          {/* Auth controls moved to NavBar/MobileDrawer */}
         </Stack>
         <Tooltip title="Download PDF">
           <IconButton color="primary" onClick={handleDownload} aria-label="Download resume">
