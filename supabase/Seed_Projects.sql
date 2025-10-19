@@ -9,7 +9,9 @@ with to_insert(title, github_url) as (
     ('Project-Compose-Bifrost', 'https://github.com/jbledua/Project-Compose-Bifrost'),
     ('Project-Horizon', 'https://github.com/jbledua/Project-Horizon'),
     ('Ciphertext', 'https://github.com/jbledua/Ciphertext'),
-    ('Project-Guidance', 'https://github.com/jbledua/Project-Guidance')
+    ('Project-Guidance', 'https://github.com/jbledua/Project-Guidance'),
+    ('Project-Compose-Redirect', 'https://github.com/jbledua/Project-Compose-Redirect'),
+    ('jbledua.github.io', 'https://github.com/jbledua/jbledua.github.io')
 )
 insert into public.projects (id, title, github_url)
 select gen_random_uuid(), t.title, t.github_url
@@ -122,14 +124,102 @@ update public.projects set description_id = d.id
 from d
 where title = 'Project-Guidance' and description_id is null;
 
+-- Project-Compose-Redirect
+with existing as (
+  select p.description_id as id from public.projects p where p.title = 'Project-Compose-Redirect' and p.description_id is not null
+), ins as (
+  insert into public.descriptions (id, paragraphs, bullets)
+  select 
+    gen_random_uuid(),
+    array['Self-hosted link shortener (Shlink + Web Client) in Docker Compose, with easy web UI, custom slugs under one domain, Tailscale fallback networking, and ports ready for your reverse proxy/TLS.'],
+    '{}'
+  where not exists (select 1 from existing)
+  returning id
+), d as (
+  select id from existing
+  union all
+  select id from ins
+)
+update public.projects set description_id = d.id
+from d
+where title = 'Project-Compose-Redirect' and description_id is null;
+
+-- jbledua.github.io (this website)
+with existing as (
+  select p.description_id as id from public.projects p where p.title = 'jbledua.github.io' and p.description_id is not null
+), ins as (
+  insert into public.descriptions (id, paragraphs, bullets)
+  select 
+    gen_random_uuid(),
+    array['Personal site built with React + Vite + MUI, reading content from Supabase.'],
+    '{}'
+  where not exists (select 1 from existing)
+  returning id
+), d as (
+  select id from existing
+  union all
+  select id from ins
+)
+update public.projects set description_id = d.id
+from d
+where title = 'jbledua.github.io' and description_id is null;
+
 -- Skills are seeded and grouped in Seed_Skills.sql. This file only maps them to projects.
 
 -- Map project skills with explicit positions (idempotent)
+-- Project-Compose-Pantry
+with p as (
+  select id from public.projects where title = 'Project-Compose-Pantry'
+), skill_names(name, position) as (
+  values ('Docker',0), ('Tailscale',1), ('AWS',2), ('RESTful API',3), ('Docker Compose',4)
+)
+insert into public.project_skills (project_id, skill_id, position)
+select p.id, s.id, skill_names.position
+from p, skill_names
+join public.skills s on s.name = skill_names.name
+on conflict (project_id, skill_id) do nothing;
+
+-- Project-Compose-Redirect
+-- Ensure missing skills exist (Shlink)
+insert into public.skills (id, name)
+select gen_random_uuid(), v.name
+from (values ('Shlink')) as v(name)
+where not exists (select 1 from public.skills s where s.name = v.name);
+
+with p as (
+  select id from public.projects where title = 'Project-Compose-Redirect'
+), skill_names(name, position) as (
+  values ('Docker',0), ('Tailscale',1), ('Shlink',2), ('RESTful API',3), ('Docker Compose',4)
+)
+insert into public.project_skills (project_id, skill_id, position)
+select p.id, s.id, skill_names.position
+from p, skill_names
+join public.skills s on s.name = skill_names.name
+on conflict (project_id, skill_id) do nothing;
+
+-- jbledua.github.io (this website)
+-- Ensure missing skills exist (Supabase, JavaScript)
+insert into public.skills (id, name)
+select gen_random_uuid(), v.name
+from (values ('Supabase'), ('JavaScript')) as v(name)
+where not exists (select 1 from public.skills s where s.name = v.name);
+
+with p as (
+  select id from public.projects where title = 'jbledua.github.io'
+), skill_names(name, position) as (
+  values ('React',0), ('TypeScript',1), ('JavaScript',2), ('Supabase',3), ('MUI',4), ('Git/GitHub',5), ('Vite',6), ('GitHub Pages',7)
+)
+insert into public.project_skills (project_id, skill_id, position)
+select p.id, s.id, skill_names.position
+from p, skill_names
+join public.skills s on s.name = skill_names.name
+on conflict (project_id, skill_id) do nothing;
+
 -- Project-Compose-Workflow
 with p as (
   select id from public.projects where title = 'Project-Compose-Workflow'
 ), skill_names(name, position) as (
-  values ('Docker',0), ('n8n',1), ('tailscale',2), ('RESTful API',3)
+  values ('Docker',0), ('n8n',1), ('Tailscale',2), ('RESTful API',3), ('Docker Compose',4)
 )
 insert into public.project_skills (project_id, skill_id, position)
 select p.id, s.id, skill_names.position
@@ -141,7 +231,7 @@ on conflict (project_id, skill_id) do nothing;
 with p as (
   select id from public.projects where title = 'Project-Compose-Bifrost'
 ), skill_names(name, position) as (
-  values ('Docker',0), ('rustdesk',1), ('rmm',2), ('AWS EC2',3)
+  values ('Docker',0), ('RustDesk',1), ('RMM',2), ('AWS EC2',3), ('Docker Compose',4)
 )
 insert into public.project_skills (project_id, skill_id, position)
 select p.id, s.id, skill_names.position
