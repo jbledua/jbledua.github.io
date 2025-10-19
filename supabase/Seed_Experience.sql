@@ -33,6 +33,39 @@ with l as (
 insert into public.jobs (id, company, role, type, location_id, start_date, end_date)
 select gen_random_uuid(), company, role, type, loc, start_d, end_d from jobs_src;
 
+-- Seed Backslash Designs logos and link to job
+with existing_photos as (
+  select id, file_path from public.photos where file_path in (
+    'public/photos/logos/BSD-Logo-Dark.png',
+    'public/photos/logos/BSD-Logo-Light.png'
+  )
+), ins_dark as (
+  insert into public.photos (title, file_path, alt, width, height)
+  select 'Backslash Designs Logo (Dark)', 'public/photos/logos/BSD-Logo-Dark.png', 'Backslash Designs logo - dark', null, null
+  where not exists (select 1 from existing_photos where file_path='public/photos/logos/BSD-Logo-Dark.png')
+  returning id
+), ins_light as (
+  insert into public.photos (title, file_path, alt, width, height)
+  select 'Backslash Designs Logo (Light)', 'public/photos/logos/BSD-Logo-Light.png', 'Backslash Designs logo - light', null, null
+  where not exists (select 1 from existing_photos where file_path='public/photos/logos/BSD-Logo-Light.png')
+  returning id
+), ph as (
+  select id, file_path from existing_photos
+  union all select id, 'public/photos/logos/BSD-Logo-Dark.png' from ins_dark
+  union all select id, 'public/photos/logos/BSD-Logo-Light.png' from ins_light
+), job as (
+  select id from public.jobs where company='Backslash Designs' and role='Owner' order by start_date desc nulls last limit 1
+), dark as (
+  select id from ph where file_path='public/photos/logos/BSD-Logo-Dark.png' limit 1
+), light as (
+  select id from ph where file_path='public/photos/logos/BSD-Logo-Light.png' limit 1
+)
+update public.jobs j
+set job_icon_dark_id = coalesce(j.job_icon_dark_id, (select id from dark)),
+    job_icon_light_id = coalesce(j.job_icon_light_id, (select id from light))
+from job
+where j.id = job.id;
+
 -- Description block for Backslash Designs · Owner
 with job as (
   select id from public.jobs where company='Backslash Designs' and role='Owner' order by start_date desc nulls last limit 1
@@ -42,12 +75,113 @@ with job as (
 ), ins as (
   insert into public.descriptions (paragraphs, bullets)
   select array['Owner of a boutique tech studio delivering managed IT, DevOps, and full‑stack projects for SMBs and non-profits.']::text[],
+        array[
+          'Standardized device provisioning and compliance with Intune/Autopilot; documented DR with Synology backups.',
+          'Containerized services behind Tailscale; built CI/CD with GitHub Actions for static sites and infrastructure repos.',
+          'Designed Supabase schemas and secure APIs; built React/MUI front ends for marketing and internal tools.',
+          'Automated email onboarding and nurture flows with Power Automate and n8n; produced responsive HTML templates.'
+        ]::text[]
+  where not exists (select 1 from existing)
+  returning id
+), d as (
+  select id from existing
+  union all
+  select id from ins
+)
+insert into public.job_descriptions (job_id, description_id, position)
+select job.id, d.id, 0
+from job, d
+on conflict do nothing;
+
+-- Description block for JIG Technologies Inc · Remote Support Technician (Level 1)
+with job as (
+  select id from public.jobs where company='JIG Technologies Inc' and role='Remote Support Technician (Level 1)' order by start_date desc nulls last limit 1
+), existing as (
+  select id from public.descriptions
+  where paragraphs[1] = 'Level 1 remote support for SMB clients: triaged desktop/server issues, handled account lifecycle and hardware setup, and delivered responsive support against strict SLAs.'
+), ins as (
+  insert into public.descriptions (paragraphs, bullets)
+  select array['Level 1 remote support for SMB clients: triaged desktop/server issues, handled account lifecycle and hardware setup, and delivered responsive support against strict SLAs.']::text[],
          array[
-           'Standardized device provisioning and compliance with Intune/Autopilot; documented DR with Synology backups.',
-           'Containerized services behind Tailscale; built CI/CD with GitHub Actions for static sites and infrastructure repos.',
-           'Designed Supabase schemas and secure APIs; built React/MUI front ends for marketing and internal tools.',
-           'Automated email onboarding and nurture flows with Power Automate and n8n; produced responsive HTML templates.'
+           'Resolved desktop-related tickets and routine server issues; connected displays, restored email service, and performed proactive maintenance.',
+           'Provisioned and deprovisioned user accounts; configured endpoints to streamline onboarding and offboarding.',
+           'Provided professional remote support via phone and email; handled 4–5 concurrent tickets while meeting a 15‑min response and 1‑day resolution SLA.',
+           'Escalated complex cases with teammates and supervisors to ensure timely resolution and minimal downtime.',
+           'Maintained accurate ticket notes, resolutions, and client communications for auditability and trend analysis.',
+           'Continually improved product and platform knowledge to deliver current, effective solutions.'
          ]::text[]
+  where not exists (select 1 from existing)
+  returning id
+), d as (
+  select id from existing
+  union all
+  select id from ins
+)
+insert into public.job_descriptions (job_id, description_id, position)
+select job.id, d.id, 0
+from job, d
+on conflict do nothing;
+
+-- Description block for University of Toronto · Summer Intern
+with job as (
+  select id from public.jobs where company='University of Toronto' and role='Summer Intern' order by start_date desc nulls last limit 1
+), existing_old as (
+  select id from public.descriptions
+  where paragraphs[1] = 'Built a C++/Qt backend on a Kubuntu server communicating with a balloon server via a proprietary protocol, with a React front end consuming a RESTful API.'
+), existing_new as (
+  select id from public.descriptions
+  where paragraphs[1] = 'Worked on a C++/Qt backend on a Kubuntu server that communicated with a balloon server via a proprietary protocol, with a React front end consuming a RESTful API.'
+), upd as (
+  update public.descriptions
+  set paragraphs = array['Worked on a C++/Qt backend on a Kubuntu server that communicated with a balloon server via a proprietary protocol, with a React front end consuming a RESTful API.']::text[],
+      bullets = array[
+        'Contributed to backend services in C++ using Qt on Kubuntu; integrated with a proprietary protocol maintained by the team.',
+        'Helped design RESTful API endpoints for the front end; documented request/response shapes for integration.',
+        'Developed React components to visualize device/balloon state and trigger backend actions.',
+        'Worked in a Linux server environment: basic service supervision, logging, and troubleshooting.'
+      ]::text[]
+  where id in (select id from existing_old)
+  returning id
+), ins as (
+  insert into public.descriptions (paragraphs, bullets)
+  select array['Worked on a C++/Qt backend on a Kubuntu server that communicated with a balloon server via a proprietary protocol, with a React front end consuming a RESTful API.']::text[],
+         array[
+           'Contributed to backend services in C++ using Qt on Kubuntu; integrated with a proprietary protocol maintained by the team.',
+           'Helped design RESTful API endpoints for the front end; documented request/response shapes for integration.',
+           'Developed React components to visualize device/balloon state and trigger backend actions.',
+           'Worked in a Linux server environment: basic service supervision, logging, and troubleshooting.'
+         ]::text[]
+  where not exists (select 1 from existing_new)
+        and not exists (select 1 from existing_old)
+  returning id
+), d as (
+  select id from existing_new
+  union all
+  select id from upd
+  union all
+  select id from ins
+)
+insert into public.job_descriptions (job_id, description_id, position)
+select job.id, d.id, 0
+from job, d
+on conflict do nothing;
+
+-- Description block for Lakehead University · Research Assistant
+with job as (
+  select id from public.jobs where company='Lakehead University' and role='Research Assistant' order by start_date desc nulls last limit 1
+), existing as (
+  select id from public.descriptions
+  where paragraphs[1] = 'Research support while studying: built React-based UI for a faculty website and explored early ideas in computer vision for security cameras.'
+), ins as (
+  insert into public.descriptions (paragraphs, bullets)
+  select array['Research support while studying: built React-based UI for a faculty website and explored early ideas in computer vision for security cameras.']::text[],
+        array[
+          'Implemented responsive React components and basic MUI theming for a faculty site prototype.',
+          'Collaborated with a professor to translate wireframes into accessible, mobile-friendly layouts.',
+          'Explored feasibility of computer-vision approaches for security cameras; gathered references and drafted proposal notes.',
+          'Used Git/GitHub for version control and issue tracking; documented setup and contribution steps.',
+          'Leveraged JavaScript/TypeScript and Python for UI prototypes and exploratory scripts.'
+        ]::text[]
   where not exists (select 1 from existing)
   returning id
 ), d as (
@@ -69,13 +203,41 @@ with job as (
 ), ins as (
   insert into public.descriptions (paragraphs, bullets)
   select array['Owned reliability, security, and collaboration tooling across a Microsoft 365/Entra ID environment.']::text[],
-         array[
-           'Administered Entra ID, Exchange Online, SharePoint/Teams, and Intune (Windows/iOS) with baseline and Conditional Access policies.',
-           'Hardened endpoints with Defender/EDR; deployed phishing protections and privileged access reviews.',
-           'Implemented data retention, backup, and recovery playbooks with documented RTO/RPO.',
-           'Consolidated Teams/SharePoint information architecture to reduce sprawl and improve permissions hygiene.',
-           'Provided SLA-driven support and clear communications; authored SOPs and reusable runbooks.'
-         ]::text[]
+        array[
+          'Administered Entra ID, Exchange Online, SharePoint/Teams, and Intune (Windows/iOS) with baseline and Conditional Access policies.',
+          'Hardened endpoints with Defender/EDR; deployed phishing protections and privileged access reviews.',
+          'Implemented data retention, backup, and recovery playbooks with documented RTO/RPO.',
+          'Consolidated Teams/SharePoint information architecture to reduce sprawl and improve permissions hygiene.',
+          'Provided SLA-driven support and clear communications; authored SOPs and reusable runbooks.'
+        ]::text[]
+  where not exists (select 1 from existing)
+  returning id
+), d as (
+  select id from existing
+  union all
+  select id from ins
+)
+insert into public.job_descriptions (job_id, description_id, position)
+select job.id, d.id, 0
+from job, d
+on conflict do nothing;
+
+-- Description block for Freelance · Information Technology Consultant
+with job as (
+  select id from public.jobs where company='Freelance' and role='Information Technology Consultant' order by start_date desc nulls last limit 1
+), existing as (
+  select id from public.descriptions
+  where paragraphs[1] = 'Freelance IT consulting across Microsoft 365 and live broadcast workflows for non-profits, social services, and media clients; precursor to founding Backslash Designs.'
+), ins as (
+  insert into public.descriptions (paragraphs, bullets)
+  select array['Freelance IT consulting across Microsoft 365 and live broadcast workflows for non-profits, social services, and media clients; precursor to founding Backslash Designs.']::text[],
+        array[
+          'Supported Microsoft 365 tenants for non-profits: user onboarding/offboarding, identity and email hygiene, and day-to-day help desk triage.',
+          'Designed and maintained live production stacks for media clients (NDI/SDI routing, Blackmagic switchers, vMix, ProPresenter, PTZ control, audio integration).',
+          'Implemented pragmatic network and device setups to reduce downtime and improve reliability during live events.',
+          'Partnered with stakeholders to scope needs and deliver right-sized solutions with clear handover docs and SOPs.',
+          'Standardized tools and practices that later evolved into Backslash Designs'' managed IT and A/V offerings.'
+        ]::text[]
   where not exists (select 1 from existing)
   returning id
 ), d as (
@@ -102,4 +264,74 @@ union all
 select (select id from j where company='Backslash Designs' and role='Owner' order by start_date desc nulls last limit 1), (select id from s where name='Node.js' limit 1)
 union all
 select (select id from j where company='NorthWind Family Ministries' and role='Information Technology Lead' order by start_date desc nulls last limit 1), (select id from s where name='GitHub Actions' limit 1)
+union all
+-- Freelance · Information Technology Consultant — Pro A/V skills
+select (select id from j where company='Freelance' and role='Information Technology Consultant' order by start_date desc nulls last limit 1), (select id from s where name='vMix' limit 1)
+union all
+select (select id from j where company='Freelance' and role='Information Technology Consultant' order by start_date desc nulls last limit 1), (select id from s where name='ProPresenter' limit 1)
+union all
+select (select id from j where company='Freelance' and role='Information Technology Consultant' order by start_date desc nulls last limit 1), (select id from s where name='Blackmagic Design' limit 1)
+union all
+select (select id from j where company='Freelance' and role='Information Technology Consultant' order by start_date desc nulls last limit 1), (select id from s where name='NDI' limit 1)
+union all
+select (select id from j where company='Freelance' and role='Information Technology Consultant' order by start_date desc nulls last limit 1), (select id from s where name='SDI' limit 1)
+union all
+select (select id from j where company='Freelance' and role='Information Technology Consultant' order by start_date desc nulls last limit 1), (select id from s where name='PTZ' limit 1)
+union all
+select (select id from j where company='Freelance' and role='Information Technology Consultant' order by start_date desc nulls last limit 1), (select id from s where name='HDBaseT' limit 1)
+union all
+-- Freelance · Information Technology Consultant — IT support skills
+select (select id from j where company='Freelance' and role='Information Technology Consultant' order by start_date desc nulls last limit 1), (select id from s where name='Microsoft' limit 1)
+union all
+select (select id from j where company='Freelance' and role='Information Technology Consultant' order by start_date desc nulls last limit 1), (select id from s where name='Microsoft Entra ID' limit 1)
+union all
+select (select id from j where company='Freelance' and role='Information Technology Consultant' order by start_date desc nulls last limit 1), (select id from s where name='Intune' limit 1)
+union all
+select (select id from j where company='Freelance' and role='Information Technology Consultant' order by start_date desc nulls last limit 1), (select id from s where name='Google Workspace' limit 1)
+union all
+-- JIG Technologies Inc — IT support and RMM
+select (select id from j where company='JIG Technologies Inc' and role='Remote Support Technician (Level 1)' order by start_date desc nulls last limit 1), (select id from s where name='Kasaya' limit 1)
+union all
+select (select id from j where company='JIG Technologies Inc' and role='Remote Support Technician (Level 1)' order by start_date desc nulls last limit 1), (select id from s where name='Dato RMM' limit 1)
+union all
+select (select id from j where company='JIG Technologies Inc' and role='Remote Support Technician (Level 1)' order by start_date desc nulls last limit 1), (select id from s where name='Microsoft Entra ID' limit 1)
+union all
+select (select id from j where company='JIG Technologies Inc' and role='Remote Support Technician (Level 1)' order by start_date desc nulls last limit 1), (select id from s where name='Google Workspace' limit 1)
+union all
+select (select id from j where company='JIG Technologies Inc' and role='Remote Support Technician (Level 1)' order by start_date desc nulls last limit 1), (select id from s where name='Microsoft 365' limit 1)
+union all
+-- Lakehead University · Research Assistant — UI and early CV research
+select (select id from j where company='Lakehead University' and role='Research Assistant' order by start_date desc nulls last limit 1), (select id from s where name='React' limit 1)
+union all
+select (select id from j where company='Lakehead University' and role='Research Assistant' order by start_date desc nulls last limit 1), (select id from s where name='MUI' limit 1)
+union all
+select (select id from j where company='Lakehead University' and role='Research Assistant' order by start_date desc nulls last limit 1), (select id from s where name='JavaScript' limit 1)
+union all
+select (select id from j where company='Lakehead University' and role='Research Assistant' order by start_date desc nulls last limit 1), (select id from s where name='TypeScript' limit 1)
+union all
+select (select id from j where company='Lakehead University' and role='Research Assistant' order by start_date desc nulls last limit 1), (select id from s where name='Python' limit 1)
+union all
+select (select id from j where company='Lakehead University' and role='Research Assistant' order by start_date desc nulls last limit 1), (select id from s where name='AI' limit 1)
+union all
+-- University of Toronto · Summer Intern — C++/Qt backend on Kubuntu + React REST front end
+select (select id from j where company='University of Toronto' and role='Summer Intern' order by start_date desc nulls last limit 1), (select id from s where name='C++' limit 1)
+union all
+select (select id from j where company='University of Toronto' and role='Summer Intern' order by start_date desc nulls last limit 1), (select id from s where name='Qt' limit 1)
+union all
+select (select id from j where company='University of Toronto' and role='Summer Intern' order by start_date desc nulls last limit 1), (select id from s where name='Kubuntu' limit 1)
+union all
+select (select id from j where company='University of Toronto' and role='Summer Intern' order by start_date desc nulls last limit 1), (select id from s where name='React' limit 1)
+union all
+select (select id from j where company='University of Toronto' and role='Summer Intern' order by start_date desc nulls last limit 1), (select id from s where name='RESTful API' limit 1)
 on conflict do nothing;
+
+-- Cleanup: remove outdated UofT skill mappings no longer representative
+with job as (
+  select id from public.jobs where company='University of Toronto' and role='Summer Intern' order by start_date desc nulls last limit 1
+), old_skills as (
+  select id from public.skills where name in ('Python','SQL','Git/GitHub')
+)
+delete from public.job_skills js
+using job, old_skills
+where js.job_id = job.id and js.skill_id = old_skills.id;
+

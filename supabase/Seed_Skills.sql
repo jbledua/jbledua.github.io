@@ -17,6 +17,7 @@ on conflict (name) do nothing;
 -- Seed skills by name
 insert into public.skills (id, name)
 values
+    (gen_random_uuid(), 'C'),
     (gen_random_uuid(), 'TypeScript'),
     (gen_random_uuid(), 'Python'),
     (gen_random_uuid(), 'SQL'),
@@ -30,9 +31,11 @@ values
     (gen_random_uuid(), 'Angular'),
     (gen_random_uuid(), 'Unity'),
     (gen_random_uuid(), 'C#'),
+    (gen_random_uuid(), 'C++'),
     (gen_random_uuid(), 'ECS'),
     (gen_random_uuid(), 'DOTS'),
     (gen_random_uuid(), 'n8n'),
+    (gen_random_uuid(), 'Qt'),
     (gen_random_uuid(), 'Tailscale'),
     (gen_random_uuid(), 'RustDesk'),
     (gen_random_uuid(), 'RMM'),
@@ -67,7 +70,9 @@ values
     (gen_random_uuid(), 'Defender EDM'),
     (gen_random_uuid(), 'Kasaya'),
     (gen_random_uuid(), 'Dato RMM'),
-    (gen_random_uuid(), 'Google Workspace')
+    (gen_random_uuid(), 'Microsoft 365'),
+    (gen_random_uuid(), 'Google Workspace'),
+    (gen_random_uuid(), 'Kubuntu')
     ,(gen_random_uuid(), 'NDI')
     ,(gen_random_uuid(), 'SDI')
     ,(gen_random_uuid(), 'HDBaseT')
@@ -85,11 +90,13 @@ with g as (
     select id, name from public.skills
 ), map as (
     -- Languages
-    select 'Languages'::text as group_name, 'C/C#/C++'::text as skill_name, 0 as pos union all
-    select 'Languages', 'Python', 1 union all
-    select 'Languages', 'SQL', 2 union all
-    select 'Languages', 'TypeScript', 3 union all
-    select 'Languages', 'JavaScript', 4 union all
+    select 'Languages'::text as group_name, 'C'::text as skill_name, 0 as pos union all
+    select 'Languages', 'C#', 1 union all
+    select 'Languages', 'C++', 2 union all
+    select 'Languages', 'Python', 3 union all
+    select 'Languages', 'SQL', 4 union all
+    select 'Languages', 'TypeScript', 5 union all
+    select 'Languages', 'JavaScript', 6 union all
     -- Frameworks
     select 'Frameworks', 'React', 0 union all
     select 'Frameworks', 'Node.js', 1 union all
@@ -99,6 +106,7 @@ with g as (
     select 'Frameworks', 'ECS', 5 union all
     select 'Frameworks', 'DOTS', 6 union all
     select 'Frameworks', 'n8n', 7 union all
+    select 'Frameworks', 'Qt', 8 union all
     -- Tools
     select 'Tools', 'Git/GitHub', 0 union all
     select 'Tools', 'Docker', 1 union all
@@ -127,6 +135,8 @@ with g as (
     select 'Platforms', 'Microsoft', 5 union all
     select 'Platforms', 'GitHub Pages', 6 union all
     select 'Platforms', 'Google Workspace', 7 union all
+    select 'Platforms', 'Kubuntu', 8 union all
+    select 'Platforms', 'Microsoft 365', 9 union all
     -- Deployment
     select 'Deployment', 'Traefik', 0 union all
     select 'Deployment', 'Nginx', 1 union all
@@ -140,6 +150,7 @@ with g as (
     select 'IT Support', 'Kasaya', 4 union all
     select 'IT Support', 'Dato RMM', 5 union all
     select 'IT Support', 'Google Workspace', 6 union all
+    select 'IT Support', 'Microsoft 365', 7 union all
     -- Pro A/V
     select 'Pro A/V', 'NDI', 0 union all
     select 'Pro A/V', 'SDI', 1 union all

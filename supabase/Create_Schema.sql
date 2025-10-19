@@ -153,6 +153,11 @@ create index if not exists jobs_dates_idx on public.jobs(start_date, end_date);
 create trigger trg_jobs_updated_at before update on public.jobs
 for each row execute function set_updated_at();
 
+-- Add new light/dark logo columns for jobs (safe for existing DBs)
+alter table if exists public.jobs
+  add column if not exists job_icon_light_id uuid references public.photos(id) on delete set null,
+  add column if not exists job_icon_dark_id uuid references public.photos(id) on delete set null;
+
 -- Array of Description blocks for each Job (ordered)
 create table if not exists public.job_descriptions (
   job_id uuid references public.jobs(id) on delete cascade,
