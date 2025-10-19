@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient';
+import { supabase, getPublicStorageUrl } from './supabaseClient';
 
 // List available resumes (id, title)
 export async function listResumes() {
@@ -35,7 +35,20 @@ export async function getResume(resumeId) {
   // Resume jobs (ordered)
   const { data: resumeJobs, error: jErr } = await supabase
     .from('resume_jobs')
-    .select('job_id, position, jobs(id, company, role, type, start_date, end_date)')
+    .select(`
+      job_id,
+      position,
+      jobs(
+        id,
+        company,
+        role,
+        type,
+        start_date,
+        end_date,
+        job_icon_light:job_icon_light_id(file_path, alt),
+        job_icon_dark:job_icon_dark_id(file_path, alt)
+      )
+    `)
     .eq('resume_id', resumeId)
     .order('position', { ascending: true });
   if (jErr) throw jErr;
@@ -78,6 +91,10 @@ export async function getResume(resumeId) {
   const experiences = (resumeJobs || []).map((rj) => {
     const j = rj.jobs || {};
     const d = byJobDescription.get(rj.job_id) || { paragraphs: [], bullets: [] };
+    const lightPath = j?.job_icon_light?.file_path || null;
+    const darkPath = j?.job_icon_dark?.file_path || null;
+    const iconLight = lightPath ? getPublicStorageUrl(lightPath) : null;
+    const iconDark = darkPath ? getPublicStorageUrl(darkPath) : null;
     const variant = {
       title: `${j.role || 'Role'} · ${j.company || 'Company'}`,
       period: buildPeriod(j.start_date, j.end_date),
@@ -90,6 +107,8 @@ export async function getResume(resumeId) {
       id: rj.job_id,
       label: `${j.role || 'Role'} · ${j.company || 'Company'}`,
       enabled: true,
+      iconLight,
+      iconDark,
       variants: [variant],
       selectedVariant: 0,
     };

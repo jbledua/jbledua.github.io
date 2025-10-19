@@ -607,45 +607,99 @@ export default function ResumePage() {
             ) : (
               <Stack id="exp-list" spacing={2} sx={{ mb: 3 }}>
                 {experiencesToShow.map((e) => {
-                const v = e.variants[e.selectedVariant] || e.variants[0];
-                const meta = [v.period, v.employmentType].filter(Boolean).join(' · ');
-                return (
-                  <Box key={e.id}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{v.title}</Typography>
-                    {meta && (
-                      <Typography variant="caption" color="text.secondary">{meta}</Typography>
-                    )}
-                    {v.summary && (
-                      <Typography variant="body2" sx={{ mt: 0.5 }}>{v.summary}</Typography>
-                    )}
-                    {v.bullets?.length > 0 && (
-                      <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: '1.2rem' }}>
-                        {v.bullets.map((b, i) => (
-                          <li key={i}><Typography variant="body2">{b}</Typography></li>
-                        ))}
-                      </ul>
-                    )}
-                    {Array.isArray(v.skills) && v.skills.length > 0 && (
-                      <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {v.skills.map((s) => {
-                          const scheme = skillLabelToScheme.get(s) || skillLabelToScheme.get(String(s).toLowerCase());
-                          const isHighlighted = normalizeLabel(s) === highlightedSkill;
-                          return (
-                            <Chip
-                              key={s}
-                              label={s}
-                              size="small"
-                              variant={isHighlighted ? 'filled' : 'outlined'}
-                              color={scheme || 'default'}
-                              onClick={() => triggerHighlight(s)}
-                              sx={isHighlighted ? { animation: `${bounceKeyframes} 650ms ease` } : undefined}
-                            />
-                          );
-                        })}
-                      </Box>
-                    )}
-                  </Box>
-                );
+                  const v = e.variants[e.selectedVariant] || e.variants[0];
+                  const meta = [v.period, v.employmentType].filter(Boolean).join(' · ');
+
+                  // Job icon selection: prefer theme-matching variant, then alternate. If none in DB, no avatar.
+                  const hasJobIcon = Boolean(e.iconLight || e.iconDark);
+                  const jobIconPrimary = (theme?.palette?.mode === 'dark'
+                    ? (e.iconDark || e.iconLight)
+                    : (e.iconLight || e.iconDark)) || null;
+                  const jobIconAlternate = (theme?.palette?.mode === 'dark'
+                    ? (e.iconLight || e.iconDark)
+                    : (e.iconDark || e.iconLight)) || null;
+
+
+                  return (
+                    <Card key={e.id} variant="outlined" sx={{ borderColor: 'divider' }}>
+                      <CardHeader
+                        avatar={hasJobIcon ? (
+                          <Avatar
+                            src={jobIconPrimary || undefined}
+                            alt={`${v.title} icon`}
+                            sx={{
+                              width: 42,
+                              height: 42,
+                              bgcolor: (theme) => theme.palette.mode === 'light' ? 'grey.50' : 'background.default',
+                              border: '1px solid',
+                              borderColor: 'divider',
+                              p: 0.25,
+                            }}
+                            variant="rounded"
+                            slotProps={{
+                              img: {
+                                style: { objectFit: 'contain', filter: 'drop-shadow(0 0 1px rgba(0,0,0,0.35))' },
+                                onError: (ev) => {
+                                  try {
+                                    const img = ev?.currentTarget;
+                                    if (!img) return;
+                                    const step = Number(img.dataset.fallbackStep || 0);
+                                    const options = [jobIconAlternate];
+                                    const next = options[step] || null;
+                                    img.dataset.fallbackStep = String(step + 1);
+                                    if (next && img.src !== next) {
+                                      img.src = next;
+                                    }
+                                  } catch {}
+                                },
+                              },
+                            }}
+                          >
+                            {String(v.title || '?').split('·').pop()?.trim()?.charAt(0)?.toUpperCase() || '?'}
+                          </Avatar>
+                        ) : undefined}
+                        title={v.title}
+                        subheader={meta}
+                        slotProps={{
+                          title: { variant: 'subtitle1', sx: { fontWeight: 600 } },
+                          subheader: { variant: 'caption', sx: { color: 'text.secondary' } },
+                        }}
+                      />
+                      {(v.summary || (v.bullets?.length > 0) || (Array.isArray(v.skills) && v.skills.length > 0)) && (
+                        <CardContent>
+                          {v.summary && (
+                            <Typography variant="body2" sx={{ mt: 0.5 }}>{v.summary}</Typography>
+                          )}
+                          {v.bullets?.length > 0 && (
+                            <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: '1.2rem' }}>
+                              {v.bullets.map((b, i) => (
+                                <li key={i}><Typography variant="body2">{b}</Typography></li>
+                              ))}
+                            </ul>
+                          )}
+                          {Array.isArray(v.skills) && v.skills.length > 0 && (
+                            <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                              {v.skills.map((s) => {
+                                const scheme = skillLabelToScheme.get(s) || skillLabelToScheme.get(String(s).toLowerCase());
+                                const isHighlighted = normalizeLabel(s) === highlightedSkill;
+                                return (
+                                  <Chip
+                                    key={s}
+                                    label={s}
+                                    size="small"
+                                    variant={isHighlighted ? 'filled' : 'outlined'}
+                                    color={scheme || 'default'}
+                                    onClick={() => triggerHighlight(s)}
+                                    sx={isHighlighted ? { animation: `${bounceKeyframes} 650ms ease` } : undefined}
+                                  />
+                                );
+                              })}
+                            </Box>
+                          )}
+                        </CardContent>
+                      )}
+                    </Card>
+                  );
                 })}
               </Stack>
             )}
