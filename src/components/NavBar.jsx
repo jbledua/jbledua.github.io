@@ -54,7 +54,20 @@ export default function NavBar() {
         <AppBar position="sticky" color="default" elevation={3}>
         <Toolbar>
             <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            <Link component={RouterLink} to="/" underline="none" color="inherit">
+            <Link
+                component={RouterLink}
+                to="/"
+                underline="none"
+                color="inherit"
+                sx={{ display: 'inline-flex', alignItems: 'center', gap: 1.25 }}
+                aria-label="Home"
+            >
+                <Box
+                component="img"
+                src={mode === 'dark' ? '/images/JL-Logo-Light.png' : '/images/JL-Logo-Dark.png'}
+                alt="Josiah Ledua logo"
+                sx={{ height: 28, width: 'auto', display: 'block' }}
+                />
                 Josiah Ledua
             </Link>
             </Typography>
