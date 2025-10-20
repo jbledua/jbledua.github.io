@@ -195,9 +195,15 @@ export default function ResumePage() {
           const initialVariantIdx = Number(ui.summaryVariant ?? 0);
           const hasBullets = (variants[initialVariantIdx]?.bulletLines || []).length > 0;
           const hasParagraphs = (variants[initialVariantIdx]?.paragraphs || []).length > 0;
-          const preferredFormat = hasBullets ? 'bullet' : (hasParagraphs ? 'paragraph' : 'bullet');
-          const initialLines = preferredFormat === 'bullet' ? (variants[initialVariantIdx]?.bulletLines || []) : [];
-          const initialParagraphs = preferredFormat === 'paragraph' ? (variants[initialVariantIdx]?.paragraphs || []) : [];
+          const preferredFormat = (hasBullets && hasParagraphs)
+            ? 'both'
+            : (hasBullets ? 'bullet' : (hasParagraphs ? 'paragraph' : 'bullet'));
+          const initialLines = (preferredFormat === 'bullet' || preferredFormat === 'both')
+            ? (variants[initialVariantIdx]?.bulletLines || [])
+            : [];
+          const initialParagraphs = (preferredFormat === 'paragraph' || preferredFormat === 'both')
+            ? (variants[initialVariantIdx]?.paragraphs || [])
+            : [];
 
           // Build initial projects list
           const projects = (projList || []).map((p) => ({
@@ -293,9 +299,15 @@ export default function ResumePage() {
       const initialVariantIdx = Number(ui.summaryVariant ?? 0);
       const hasBullets = (variants[initialVariantIdx]?.bulletLines || []).length > 0;
       const hasParagraphs = (variants[initialVariantIdx]?.paragraphs || []).length > 0;
-      const preferredFormat = hasBullets ? 'bullet' : (hasParagraphs ? 'paragraph' : 'bullet');
-      const initialLines = preferredFormat === 'bullet' ? (variants[initialVariantIdx]?.bulletLines || []) : [];
-      const initialParagraphs = preferredFormat === 'paragraph' ? (variants[initialVariantIdx]?.paragraphs || []) : [];
+      const preferredFormat = (hasBullets && hasParagraphs)
+        ? 'both'
+        : (hasBullets ? 'bullet' : (hasParagraphs ? 'paragraph' : 'bullet'));
+      const initialLines = (preferredFormat === 'bullet' || preferredFormat === 'both')
+        ? (variants[initialVariantIdx]?.bulletLines || [])
+        : [];
+      const initialParagraphs = (preferredFormat === 'paragraph' || preferredFormat === 'both')
+        ? (variants[initialVariantIdx]?.paragraphs || [])
+        : [];
       setState((prev) => {
         // Compute referenced labels from new experiences and existing projects
         const referencedLabels = new Set();
@@ -404,16 +416,32 @@ export default function ResumePage() {
         setSummaryVariant(idx);
         setState((s) => ({
           ...s,
-          summaryLines: (summaryFormat === 'bullet' ? (summaryVariants[idx]?.bulletLines || []) : s.summaryLines),
-          summaryParagraphs: (summaryFormat === 'paragraph' ? (summaryVariants[idx]?.paragraphs || []) : s.summaryParagraphs),
+          summaryLines: (
+            summaryFormat === 'bullet' || summaryFormat === 'both'
+              ? (summaryVariants[idx]?.bulletLines || [])
+              : s.summaryLines
+          ),
+          summaryParagraphs: (
+            summaryFormat === 'paragraph' || summaryFormat === 'both'
+              ? (summaryVariants[idx]?.paragraphs || [])
+              : s.summaryParagraphs
+          ),
         }));
       }}
       onChangeSummaryFormat={(fmt) => {
         setSummaryFormat(fmt);
         setState((s) => ({
           ...s,
-          summaryLines: (fmt === 'bullet' ? (summaryVariants[summaryVariant]?.bulletLines || []) : []),
-          summaryParagraphs: (fmt === 'paragraph' ? (summaryVariants[summaryVariant]?.paragraphs || []) : []),
+          summaryLines: (
+            fmt === 'bullet' || fmt === 'both'
+              ? (summaryVariants[summaryVariant]?.bulletLines || [])
+              : []
+          ),
+          summaryParagraphs: (
+            fmt === 'paragraph' || fmt === 'both'
+              ? (summaryVariants[summaryVariant]?.paragraphs || [])
+              : []
+          ),
         }));
       }}
       toggleIncludePhoto={toggleIncludePhoto}
@@ -618,7 +646,33 @@ export default function ResumePage() {
                 <Typography variant="h4" gutterBottom>{NAME}</Typography>
                 <Divider sx={{ mb: 1 }} />
                 <Typography variant="h6" gutterBottom>Summary</Typography>
-                {summaryFormat === 'paragraph' ? (
+                {summaryFormat === 'both' ? (
+                  (() => {
+                    const hasP = Array.isArray(state.summaryParagraphs) && state.summaryParagraphs.length > 0;
+                    const hasB = Array.isArray(state.summaryLines) && state.summaryLines.length > 0;
+                    if (!hasP && !hasB) {
+                      return (<Typography variant="body2" color="text.secondary">No summary provided.</Typography>);
+                    }
+                    return (
+                      <Stack spacing={1}>
+                        {hasP && (
+                          <Stack spacing={1}>
+                            {state.summaryParagraphs.map((p, i) => (
+                              <Typography key={i} variant="body1">{p}</Typography>
+                            ))}
+                          </Stack>
+                        )}
+                        {hasB && (
+                          <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
+                            {state.summaryLines.map((s, i) => (
+                              <li key={i}><Typography variant="body1">{s}</Typography></li>
+                            ))}
+                          </ul>
+                        )}
+                      </Stack>
+                    );
+                  })()
+                ) : summaryFormat === 'paragraph' ? (
                   (state.summaryParagraphs && state.summaryParagraphs.length > 0 ? (
                     <Stack spacing={1}>
                       {state.summaryParagraphs.map((p, i) => (

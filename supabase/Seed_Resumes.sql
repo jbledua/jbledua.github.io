@@ -14,16 +14,16 @@ with s as (
     values (
         gen_random_uuid(),
         array[
-            'Versatile IT professional with a track record of designing secure, scalable, and maintainable systems across MSP, non-profit, and enterprise environments. I combine deep technical expertise with process-building, documentation, and automation to improve reliability, reduce complexity, and empower teams.',
-            'As an IT Lead and consultant, I’ve owned infrastructure, identity, and collaboration platforms, while also delivering full-stack and DevOps solutions. I excel at turning real business needs into practical, long-lasting systems.'
+            'Versatile IT leader delivering secure, scalable systems for MSPs, non-profits, and small enterprises. I streamline operations with clear processes, automation, and solid documentation.',
+            'Hands-on across identity, M365/Entra, Intune, Docker, and CI/CD—turning real needs into reliable, maintainable solutions.'
         ],
         array[
-            'End-to-end IT leadership: identity, security, compliance, backup, M365/Entra ID, Intune',
-            'Infrastructure & DevOps: Docker, Tailscale, CI/CD pipelines, GitHub Actions, automation',
-            'Full-stack development: React/MUI front ends, Supabase schemas, secure APIs',
-            'Process & reliability: DR planning, RTO/RPO documentation, runbooks, SOPs, communication',
-            'Media & A/V systems: NDI/SDI, vMix, switchers, broadcast reliability engineering',
-            'Workflow automation: Power Automate, n8n, email templates, onboarding/offboarding flows'
+            'Identity & M365: Entra ID, Exchange, SharePoint/Teams, Intune',
+            'Security & resilience: Defender/EDR, backup, RTO/RPO, least privilege',
+            'DevOps: Docker, Tailscale, GitHub Actions, IaC basics',
+            'Full-stack: React/MUI, Supabase, REST APIs',
+            'Automation: Power Automate, n8n, HTML email flows',
+            'A/V: NDI/SDI, vMix, Blackmagic, live production'
         ]
     ) returning id
 )

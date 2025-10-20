@@ -61,8 +61,9 @@ export default function ResumeBuilderDrawerContent({
           value={summaryFormat}
           onChange={(ev) => onChangeSummaryFormat(ev.target.value)}
         >
-          <MenuItem value="bullet">Bulleted</MenuItem>
+          <MenuItem value="both">Both</MenuItem>
           <MenuItem value="paragraph">Paragraph</MenuItem>
+          <MenuItem value="bullet">Bulleted</MenuItem>
         </Select>
       </FormControl>
 
