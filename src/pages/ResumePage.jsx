@@ -151,6 +151,17 @@ export default function ResumePage() {
     return res;
   }, [state.skills]);
 
+  // Helper: check if a skill label is globally enabled in the Skills section
+  const isSkillEnabled = useMemo(() => {
+    const enabledLabels = new Set();
+    Object.values(state.skills || {}).forEach((items) => {
+      (items || []).forEach((i) => {
+        if (i?.enabled) enabledLabels.add(String(i.label));
+      });
+    });
+    return (label) => enabledLabels.has(String(label));
+  }, [state.skills]);
+
   // No local fallback presets. We only use data from the database.
 
   // Load resumes and projects from Supabase on mount; show empty/error states on failure or no data
@@ -188,33 +199,51 @@ export default function ResumePage() {
           const initialLines = preferredFormat === 'bullet' ? (variants[initialVariantIdx]?.bulletLines || []) : [];
           const initialParagraphs = preferredFormat === 'paragraph' ? (variants[initialVariantIdx]?.paragraphs || []) : [];
 
+          // Build initial projects list
+          const projects = (projList || []).map((p) => ({
+            id: p.id,
+            label: p.title,
+            enabled: true,
+            showIcon: true,
+            showMedia: true,
+            url: p.github_url,
+            iconLight: p?.project_icon_light?.file_path ? getPublicStorageUrl(p.project_icon_light.file_path) : null,
+            iconDark: p?.project_icon_dark?.file_path ? getPublicStorageUrl(p.project_icon_dark.file_path) : null,
+            description: (p.descriptions?.paragraphs?.[0] || ''),
+            paragraphs: p.descriptions?.paragraphs || [],
+            // Store normalized tag objects (no per-project enabled; global toggle controls visibility)
+            tags: (p.project_skills || [])
+              .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+              .map((ps) => ps?.skills?.name)
+              .filter(Boolean)
+              .map((name) => ({ id: toSlug(name), label: name })),
+          }));
+
+          // Ensure all skills referenced by experiences and projects start enabled globally
+          const referencedLabels = new Set();
+          (ui.experiences || []).forEach((e) => {
+            const v = (e?.variants || [])[e?.selectedVariant || 0] || e?.variants?.[0];
+            (v?.skills || []).forEach((s) => referencedLabels.add(String(s)));
+          });
+          projects.forEach((p) => (p.tags || []).forEach((t) => referencedLabels.add(String(t.label))));
+          const skills = Object.fromEntries(Object.entries(ui.skills || {}).map(([group, items]) => {
+            const updated = (items || []).map((i) => ({
+              ...i,
+              enabled: i.enabled || referencedLabels.has(String(i.label)),
+            }));
+            return [group, updated];
+          }));
+
           setState({
             options: { includePhoto: !!ui.options?.includePhoto },
             summaryLines: initialLines,
             summaryParagraphs: initialParagraphs,
             experiences: ui.experiences || [],
-            skills: ui.skills || {},
+            skills,
             education: ui.education || [],
             certificates: ui.certificates || [],
             accounts: ui.accounts || [],
-            projects: (projList || []).map((p) => ({
-              id: p.id,
-              label: p.title,
-              enabled: true,
-              showIcon: true,
-              showMedia: true,
-              url: p.github_url,
-              iconLight: p?.project_icon_light?.file_path ? getPublicStorageUrl(p.project_icon_light.file_path) : null,
-              iconDark: p?.project_icon_dark?.file_path ? getPublicStorageUrl(p.project_icon_dark.file_path) : null,
-              description: (p.descriptions?.paragraphs?.[0] || ''),
-              paragraphs: p.descriptions?.paragraphs || [],
-              // Convert tags to toggleable objects
-              tags: (p.project_skills || [])
-                .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-                .map((ps) => ps?.skills?.name)
-                .filter(Boolean)
-                .map((name) => ({ id: toSlug(name), label: name, enabled: true })),
-            })),
+            projects,
           });
           setSummaryVariant(initialVariantIdx);
           setSummaryVariants(variants);
@@ -243,7 +272,7 @@ export default function ResumePage() {
                 .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
                 .map((ps) => ps?.skills?.name)
                 .filter(Boolean)
-                .map((name) => ({ id: toSlug(name), label: name, enabled: true })),
+                .map((name) => ({ id: toSlug(name), label: name })),
             })),
           }));
         }
@@ -267,17 +296,34 @@ export default function ResumePage() {
       const preferredFormat = hasBullets ? 'bullet' : (hasParagraphs ? 'paragraph' : 'bullet');
       const initialLines = preferredFormat === 'bullet' ? (variants[initialVariantIdx]?.bulletLines || []) : [];
       const initialParagraphs = preferredFormat === 'paragraph' ? (variants[initialVariantIdx]?.paragraphs || []) : [];
-      setState((prev) => ({
-        options: { includePhoto: !!ui.options?.includePhoto },
-        summaryLines: initialLines,
-        summaryParagraphs: initialParagraphs,
-        experiences: ui.experiences || [],
-        skills: ui.skills || {},
-        education: ui.education || [],
-        certificates: ui.certificates || [],
-        accounts: ui.accounts || [],
-        projects: prev.projects || [],
-      }));
+      setState((prev) => {
+        // Compute referenced labels from new experiences and existing projects
+        const referencedLabels = new Set();
+        (ui.experiences || []).forEach((e) => {
+          const v = (e?.variants || [])[e?.selectedVariant || 0] || e?.variants?.[0];
+          (v?.skills || []).forEach((s) => referencedLabels.add(String(s)));
+        });
+        (prev.projects || []).forEach((p) => (p.tags || []).forEach((t) => referencedLabels.add(String(typeof t === 'string' ? t : t.label))));
+        const skills = Object.fromEntries(Object.entries(ui.skills || {}).map(([group, items]) => {
+          const updated = (items || []).map((i) => ({
+            ...i,
+            enabled: i.enabled || referencedLabels.has(String(i.label)),
+          }));
+          return [group, updated];
+        }));
+
+        return ({
+          options: { includePhoto: !!ui.options?.includePhoto },
+          summaryLines: initialLines,
+          summaryParagraphs: initialParagraphs,
+          experiences: ui.experiences || [],
+          skills,
+          education: ui.education || [],
+          certificates: ui.certificates || [],
+          accounts: ui.accounts || [],
+          projects: prev.projects || [],
+        });
+      });
       setSummaryVariant(initialVariantIdx);
       setSummaryVariants(variants);
       setSummaryFormat(preferredFormat);
@@ -331,23 +377,6 @@ export default function ResumePage() {
       projects: (s.projects || []).map((p) => (p.id === id ? { ...p, showMedia: !p.showMedia } : p)),
     }));
   };
-  const toggleProjectSkill = (projectId, tagId) => {
-    setState((s) => ({
-      ...s,
-      projects: (s.projects || []).map((p) => {
-        if (p.id !== projectId) return p;
-        const tags = (p.tags || []).map((t) => {
-          // Normalize string tags on-the-fly if any
-          if (typeof t === 'string') {
-            const normalized = { id: toSlug(t), label: t, enabled: true };
-            return normalized.id === tagId ? { ...normalized, enabled: !normalized.enabled } : normalized;
-          }
-          return t.id === tagId ? { ...t, enabled: !t.enabled } : t;
-        });
-        return { ...p, tags };
-      }),
-    }));
-  };
   const updateRoleVariant = (id, variantIdx) => {
     setState((s) => ({
       ...s,
@@ -395,7 +424,6 @@ export default function ResumePage() {
       toggleProjectEnabled={toggleProjectEnabled}
       toggleProjectShowIcon={toggleProjectShowIcon}
       toggleProjectShowMedia={toggleProjectShowMedia}
-      toggleProjectSkill={toggleProjectSkill}
       toggleSkill={toggleSkill}
     />
   ), [state, summaryVariant, summaryFormat, summaryVariants]);
@@ -695,7 +723,7 @@ export default function ResumePage() {
                           )}
                           {Array.isArray(v.skills) && v.skills.length > 0 && (
                             <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                              {v.skills.map((s) => {
+                              {v.skills.filter((s) => isSkillEnabled(s)).map((s) => {
                                 const scheme = skillLabelToScheme.get(s) || skillLabelToScheme.get(String(s).toLowerCase());
                                 const isHighlighted = normalizeLabel(s) === highlightedSkill;
                                 return (
@@ -804,8 +832,8 @@ export default function ResumePage() {
                         {(p.tags && p.tags.length > 0) && (
                           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                             {(p.tags || [])
-                              .filter((t) => (typeof t === 'string') ? true : t.enabled)
                               .map((t) => (typeof t === 'string' ? t : t.label))
+                              .filter((t) => isSkillEnabled(t))
                               .map((t) => {
                                 const scheme = skillLabelToScheme.get(t) || skillLabelToScheme.get(String(t).toLowerCase());
                                 const isHighlighted = normalizeLabel(t) === highlightedSkill;
@@ -924,7 +952,7 @@ export default function ResumePage() {
                         )}
                         {Array.isArray(e.skills) && e.skills.length > 0 && (
                           <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                            {e.skills.map((s) => {
+                            {e.skills.filter((s) => isSkillEnabled(s)).map((s) => {
                               const scheme = skillLabelToScheme.get(s) || skillLabelToScheme.get(String(s).toLowerCase());
                               const isHighlighted = normalizeLabel(s) === highlightedSkill;
                               return (

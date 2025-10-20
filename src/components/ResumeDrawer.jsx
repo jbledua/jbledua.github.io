@@ -29,7 +29,6 @@ export default function ResumeBuilderDrawerContent({
   toggleProjectEnabled,
   toggleProjectShowIcon,
   toggleProjectShowMedia,
-  toggleProjectSkill,
   toggleSkill,
 }) {
   return (
@@ -125,20 +124,9 @@ export default function ResumeBuilderDrawerContent({
             {(p.tags && p.tags.length > 0) && (
               <Box sx={{ ml: 3, mt: 0.5 }}>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>Skills</Typography>
-                <FormGroup>
-                  {p.tags.map((t) => {
-                    const id = typeof t === 'string' ? toSlug(t) : t.id;
-                    const label = typeof t === 'string' ? t : t.label;
-                    const checked = typeof t === 'string' ? true : !!t.enabled;
-                    return (
-                      <FormControlLabel
-                        key={id}
-                        control={<Checkbox checked={checked} onChange={() => toggleProjectSkill(p.id, id)} />}
-                        label={label}
-                      />
-                    );
-                  })}
-                </FormGroup>
+                <Typography variant="caption" color="text.secondary">
+                  All project skills are controlled by the Skills section below.
+                </Typography>
               </Box>
             )}
           </Box>
