@@ -49,6 +49,8 @@ export default function ResumePage() {
   // UI state sourced from DB; start empty and show graceful messages
   const [state, setState] = useState({
     options: { includePhoto: true },
+    // Resume style payload from DB (e.g., { ui: 'MUI' })
+    style: {},
     summaryLines: [], // bullet form
     summaryParagraphs: [], // paragraph form
     experiences: [],
@@ -242,6 +244,7 @@ export default function ResumePage() {
 
           setState({
             options: { includePhoto: !!ui.options?.includePhoto },
+            style: ui?.style || {},
             summaryLines: initialLines,
             summaryParagraphs: initialParagraphs,
             experiences: ui.experiences || [],
@@ -258,6 +261,7 @@ export default function ResumePage() {
           // No resumes in DB; keep empty state
           setState((s) => ({
             ...s,
+            style: {},
             experiences: [],
             skills: {},
             education: [],
@@ -326,6 +330,7 @@ export default function ResumePage() {
 
         return ({
           options: { includePhoto: !!ui.options?.includePhoto },
+          style: ui?.style || {},
           summaryLines: initialLines,
           summaryParagraphs: initialParagraphs,
           experiences: ui.experiences || [],
@@ -462,6 +467,9 @@ export default function ResumePage() {
     return () => setContent(null);
   }, [drawerContent, setContent]);
 
+  // Determine active resume style; default if missing/unknown
+  const resumeStyleKey = String(state?.style?.ui || 'default').toLowerCase();
+
   return (
     <Section>
       {/* Print styles to only print the preview card */}
@@ -521,6 +529,15 @@ export default function ResumePage() {
       </Stack>
 
       {/* Canvas grid look like the mock (optional subtle bg) */}
+
+
+      {(() => {
+        // Switch on style to render different layouts; fallback to default (current MUI layout)
+        switch (resumeStyleKey) {
+          case 'mui':
+          case 'default':
+          default:
+            return (
       <Paper id="resume-paper" variant="outlined" sx={{ p: { xs: 2, sm: 3 }, position: 'relative', overflow: 'hidden' }}>
         <Box id="resume-print-area" ref={printRef} sx={{ maxWidth: 920, mx: 'auto' }}>
           {/* Header: photo + summary */}
@@ -1084,6 +1101,9 @@ export default function ResumePage() {
           )}
         </Box>
       </Paper>
+            );
+        }
+      })()}
       
     </Section>
   );

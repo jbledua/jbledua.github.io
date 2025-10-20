@@ -28,7 +28,8 @@ with s as (
     ) returning id
 )
 insert into public.resumes (id, title, profile_photo_id, style, summary_description_id)
-select gen_random_uuid(), 'IT Support', (select id from public.photos order by created_at asc limit 1), '{}'::jsonb, s.id from s;
+-- Store a simple style marker we can use later in the UI
+select gen_random_uuid(), 'IT Support', (select id from public.photos order by created_at asc limit 1), '{"ui":"MUI"}'::jsonb, s.id from s;
 
 -- Link accounts, skills, jobs, and projects if available
 with r as (
