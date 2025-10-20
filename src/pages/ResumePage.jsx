@@ -25,6 +25,7 @@ import CardActions from '@mui/material/CardActions';
 import CardHeader from '@mui/material/CardHeader';
 import CardMedia from '@mui/material/CardMedia';
 import Chip from '@mui/material/Chip';
+import Skeleton from '@mui/material/Skeleton';
 import { useTheme } from '@mui/material/styles';
 import { keyframes } from '@mui/system';
 import { Link as RouterLink } from 'react-router-dom';
@@ -544,11 +545,18 @@ export default function ResumePage() {
           <Box className="resume-section">
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ xs: 'center', sm: 'flex-start' }}>
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: { xs: 'center', sm: 'stretch' }, gap: 1, minWidth: { sm: 240 } }}>
-                {state.options.includePhoto ? (
+                {loading ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1 }}>
+                    <Skeleton variant="circular" width={200} height={200} />
+                  </Box>
+                ) : (
+                  state.options.includePhoto ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1 }}>
                       <Avatar src={PROFILE_IMG} alt={NAME} sx={{ width: 200, height: 200, border: '2px solid', borderColor: 'divider' }} />
-                    </Box>):(
+                    </Box>
+                  ) : (
                     <Box sx={{ height: 16 }} />
+                  )
                 )}
                 {/* Contact section as a Card */}
                 <Typography variant="h6" gutterBottom>Contact</Typography>
@@ -556,6 +564,18 @@ export default function ResumePage() {
                 <Card variant="outlined" sx={{ width: '100%', mt: 1 }}>
                   <CardContent sx={{ pt: 2 }}> 
                     {(() => {
+                      if (loading) {
+                        return (
+                          <Stack spacing={1}>
+                            {Array.from({ length: 4 }).map((_, i) => (
+                              <Stack key={i} direction="row" spacing={1} alignItems="center">
+                                <Skeleton variant="circular" width={28} height={28} />
+                                <Skeleton variant="text" sx={{ flex: 1 }} />
+                              </Stack>
+                            ))}
+                          </Stack>
+                        );
+                      }
                       const isAuthed = !!session;
                       const formatUrlDisplay = (url) => {
                         try {
@@ -672,10 +692,18 @@ export default function ResumePage() {
                 </Card>
               </Box>
               <Box sx={{ flex: 1 }}>
-                <Typography variant="h4" gutterBottom>{NAME}</Typography>
+                <Typography variant="h4" gutterBottom>
+                  {loading ? <Skeleton width={240} /> : NAME}
+                </Typography>
                 <Divider sx={{ mb: 1 }} />
                 <Typography variant="h6" gutterBottom>Summary</Typography>
-                {summaryFormat === 'both' ? (
+                {loading ? (
+                  <Stack spacing={1}>
+                    <Skeleton variant="text" />
+                    <Skeleton variant="text" />
+                    <Skeleton variant="text" width="60%" />
+                  </Stack>
+                ) : summaryFormat === 'both' ? (
                   (() => {
                     const hasP = Array.isArray(state.summaryParagraphs) && state.summaryParagraphs.length > 0;
                     const hasB = Array.isArray(state.summaryLines) && state.summaryLines.length > 0;
@@ -737,7 +765,25 @@ export default function ResumePage() {
           {/* Experience */}
           <Box className="resume-section">
             <Typography variant="h6" gutterBottom>Experience</Typography>
-            {experiencesToShow.length === 0 ? (
+            {loading ? (
+              <Stack id="exp-list" spacing={2} sx={{ mb: 3 }}>
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <Card key={i} variant="outlined" sx={{ p: 2 }}>
+                    <Stack direction="row" spacing={2} alignItems="center">
+                      <Skeleton variant="rounded" width={42} height={42} />
+                      <Box sx={{ flex: 1 }}>
+                        <Skeleton variant="text" width="40%" />
+                        <Skeleton variant="text" width="20%" />
+                      </Box>
+                    </Stack>
+                    <Box sx={{ mt: 1 }}>
+                      <Skeleton variant="text" />
+                      <Skeleton variant="text" width="80%" />
+                    </Box>
+                  </Card>
+                ))}
+              </Stack>
+            ) : experiencesToShow.length === 0 ? (
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                 No experience to display.
               </Typography>
@@ -847,7 +893,28 @@ export default function ResumePage() {
           {/* Projects */}
           <Box className="resume-section">
             <Typography variant="h6" gutterBottom>Projects</Typography>
-            {projectsToShow.length === 0 ? (
+            {loading ? (
+              <Grid container spacing={2}>
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Grid key={i} size={{ xs: 12, sm: 4 }}>
+                    <Card variant="outlined" sx={{ p: 1 }}>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ p: 1 }}>
+                        <Skeleton variant="circular" width={40} height={40} />
+                        <Box sx={{ flex: 1 }}>
+                          <Skeleton variant="text" width="60%" />
+                          <Skeleton variant="text" width="40%" />
+                        </Box>
+                      </Stack>
+                      <Skeleton variant="rounded" height={120} sx={{ mx: 1 }} />
+                      <Box sx={{ p: 1 }}>
+                        <Skeleton variant="text" />
+                        <Skeleton variant="text" width="70%" />
+                      </Box>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            ) : projectsToShow.length === 0 ? (
               <Typography variant="body2" color="text.secondary">No projects to display.</Typography>
             ) : (
               <Grid container spacing={2}>
@@ -967,7 +1034,22 @@ export default function ResumePage() {
           {/* Skills */}
           <Box className="resume-section">
             <Typography variant="h6" gutterBottom>Skills</Typography>
-            {skillsToShow.length === 0 ? (
+            {loading ? (
+              <Grid container spacing={2}>
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Grid key={i} size={{ xs: 12, sm: 6, md: 4 }}>
+                    <Box sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                      <Skeleton variant="text" width="40%" />
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
+                        {Array.from({ length: 8 }).map((_, j) => (
+                          <Skeleton key={j} variant="rounded" width={64} height={28} />
+                        ))}
+                      </Box>
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
+            ) : skillsToShow.length === 0 ? (
               <Typography variant="body2" color="text.secondary">No skills to display.</Typography>
             ) : (
               <Grid container spacing={2}>
@@ -1025,47 +1107,62 @@ export default function ResumePage() {
               <Divider sx={{ my: 3 }} />
               <Box className="resume-section">
                 <Typography variant="h6" gutterBottom>Education</Typography>
-                <Grid container spacing={2}>
-                  {educationToShow.map((e) => (
-                    <Grid key={e.id} size={{ xs: 12, sm: 6 }}>
-                      <Box>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{e.label}</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {[e.degree, e.field].filter(Boolean).join(', ')}{(e.degree || e.field) && (e.period ? ' · ' : '')}{e.period}
-                        </Typography>
-                        {e.summary && (
-                          <Typography variant="body2" sx={{ mt: 0.5 }}>{e.summary}</Typography>
-                        )}
-                        {e.bullets?.length > 0 && (
-                          <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: '1.2rem' }}>
-                            {e.bullets.map((b, i) => (
-                              <li key={i}><Typography variant="body2">{b}</Typography></li>
-                            ))}
-                          </ul>
-                        )}
-                        {Array.isArray(e.skills) && e.skills.length > 0 && (
-                          <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                            {e.skills.filter((s) => isSkillEnabled(s)).map((s) => {
-                              const scheme = skillLabelToScheme.get(s) || skillLabelToScheme.get(String(s).toLowerCase());
-                              const isHighlighted = normalizeLabel(s) === highlightedSkill;
-                              return (
-                                <Chip
-                                  key={s}
-                                  label={s}
-                                  size="small"
-                                  variant={isHighlighted ? 'filled' : 'outlined'}
-                                  color={scheme || 'default'}
-                                  onClick={() => triggerHighlight(s)}
-                                  sx={isHighlighted ? { animation: `${bounceKeyframes} 650ms ease` } : undefined}
-                                />
-                              );
-                            })}
-                          </Box>
-                        )}
-                      </Box>
-                    </Grid>
-                  ))}
-                </Grid>
+                {loading ? (
+                  <Grid container spacing={2}>
+                    {Array.from({ length: 2 }).map((_, i) => (
+                      <Grid key={i} size={{ xs: 12, sm: 6 }}>
+                        <Box>
+                          <Skeleton variant="text" width="60%" />
+                          <Skeleton variant="text" width="40%" />
+                          <Skeleton variant="text" width="90%" />
+                          <Skeleton variant="text" width="75%" />
+                        </Box>
+                      </Grid>
+                    ))}
+                  </Grid>
+                ) : (
+                  <Grid container spacing={2}>
+                    {educationToShow.map((e) => (
+                      <Grid key={e.id} size={{ xs: 12, sm: 6 }}>
+                        <Box>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{e.label}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {[e.degree, e.field].filter(Boolean).join(', ')}{(e.degree || e.field) && (e.period ? ' · ' : '')}{e.period}
+                          </Typography>
+                          {e.summary && (
+                            <Typography variant="body2" sx={{ mt: 0.5 }}>{e.summary}</Typography>
+                          )}
+                          {e.bullets?.length > 0 && (
+                            <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: '1.2rem' }}>
+                              {e.bullets.map((b, i) => (
+                                <li key={i}><Typography variant="body2">{b}</Typography></li>
+                              ))}
+                            </ul>
+                          )}
+                          {Array.isArray(e.skills) && e.skills.length > 0 && (
+                            <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                              {e.skills.filter((s) => isSkillEnabled(s)).map((s) => {
+                                const scheme = skillLabelToScheme.get(s) || skillLabelToScheme.get(String(s).toLowerCase());
+                                const isHighlighted = normalizeLabel(s) === highlightedSkill;
+                                return (
+                                  <Chip
+                                    key={s}
+                                    label={s}
+                                    size="small"
+                                    variant={isHighlighted ? 'filled' : 'outlined'}
+                                    color={scheme || 'default'}
+                                    onClick={() => triggerHighlight(s)}
+                                    sx={isHighlighted ? { animation: `${bounceKeyframes} 650ms ease` } : undefined}
+                                  />
+                                );
+                              })}
+                            </Box>
+                          )}
+                        </Box>
+                      </Grid>
+                    ))}
+                  </Grid>
+                )}
               </Box>
             </>
           )}
@@ -1076,26 +1173,41 @@ export default function ResumePage() {
               <Divider sx={{ my: 3 }} />
               <Box className="resume-section">
                 <Typography variant="h6" gutterBottom>Certificates</Typography>
-                  <Grid container spacing={2}>
-                    {certificatesToShow.map((c) => (
-                      <Grid key={c.id} size={{ xs: 12, sm: 6 }}>
-                        <Box>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{c.label}</Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {[c.issuer, c.period].filter(Boolean).join(' · ')}
-                          </Typography>
-                          {c.credentialUrl && (
-                            <Typography variant="body2" sx={{ mt: 0.5 }}>
-                              <a href={c.credentialUrl} target="_blank" rel="noreferrer">View Credential</a>
+                  {loading ? (
+                    <Grid container spacing={2}>
+                      {Array.from({ length: 2 }).map((_, i) => (
+                        <Grid key={i} size={{ xs: 12, sm: 6 }}>
+                          <Box>
+                            <Skeleton variant="text" width="60%" />
+                            <Skeleton variant="text" width="30%" />
+                            <Skeleton variant="text" width="50%" />
+                            <Skeleton variant="text" width="80%" />
+                          </Box>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  ) : (
+                    <Grid container spacing={2}>
+                      {certificatesToShow.map((c) => (
+                        <Grid key={c.id} size={{ xs: 12, sm: 6 }}>
+                          <Box>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{c.label}</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {[c.issuer, c.period].filter(Boolean).join(' · ')}
                             </Typography>
-                          )}
-                          {c.summary && (
-                            <Typography variant="body2" sx={{ mt: 0.5 }}>{c.summary}</Typography>
-                          )}
-                        </Box>
-                      </Grid>
-                    ))}
-                  </Grid>
+                            {c.credentialUrl && (
+                              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                <a href={c.credentialUrl} target="_blank" rel="noreferrer">View Credential</a>
+                              </Typography>
+                            )}
+                            {c.summary && (
+                              <Typography variant="body2" sx={{ mt: 0.5 }}>{c.summary}</Typography>
+                            )}
+                          </Box>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  )}
               </Box>
             </>
           )}
