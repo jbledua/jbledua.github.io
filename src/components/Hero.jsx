@@ -215,7 +215,7 @@ export default function Hero({ reasonText }) {
                             <IconButton
                                 size="small"
                                 component={RouterLink}
-                                to="/projects"
+                                to="/projects#jbledua-github-io"
                                 aria-label="Go to projects"
                                 sx={{ ml: 0.5 }}
                             >
