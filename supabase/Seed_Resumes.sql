@@ -39,6 +39,25 @@ select r.id, a.id, null, row_number() over(order by a.name) - 1
 from r cross join public.accounts a
 on conflict do nothing;
 
+-- Explicit ordering for IT Support resume: Phone, Email, Website, LinkedIn, GitHub
+with r as (
+    select id from public.resumes where title = 'IT Support' order by created_at desc limit 1
+), desired(name, pos) as (
+    values
+        ('Phone', 0),
+        ('Email', 1),
+        ('Website', 2),
+        ('LinkedIn', 3),
+        ('GitHub', 4)
+)
+insert into public.resume_accounts (resume_id, account_id, label, position)
+select r.id, a.id, null, d.pos
+from r
+join desired d on true
+join public.accounts a on lower(a.name) = lower(d.name)
+on conflict (resume_id, account_id)
+do update set position = excluded.position;
+
 with r as (
     select id from public.resumes order by created_at desc limit 1
 ), s as (
@@ -65,3 +84,22 @@ with r as (
 insert into public.resume_projects (resume_id, project_id, position)
 select r.id, p.id, p.pos from r, p
 on conflict do nothing;
+
+-- Set default visibility for resume accounts: hide those requiring auth
+-- with r as (
+--     select id from public.resumes order by created_at desc limit 1
+-- )
+-- insert into public.resume_account_visibility (resume_id, account_id, visible)
+-- select r.id, a.id, not a.requires_auth
+-- from r cross join public.accounts a
+-- on conflict (resume_id, account_id) do nothing;
+
+-- Explicitly hide Facebook, Instagram, and X for the 'IT Support' resume
+with r as (
+    select id from public.resumes where title = 'IT Support' order by created_at desc limit 1
+), a as (
+    select id from public.accounts where lower(name) in ('facebook','instagram','x')
+)
+insert into public.resume_account_visibility (resume_id, account_id, visible)
+select r.id, a.id, false from r, a
+on conflict (resume_id, account_id) do update set visible = excluded.visible;

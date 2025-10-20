@@ -193,6 +193,19 @@ export async function getResume(resumeId) {
 
   // Contact accounts for this resume (ordered)
   let accounts = [];
+  // Load visibility map for this resume (default visible=true if no row)
+  let visibilityByAccount = new Map();
+  try {
+    const { data: visRows } = await supabase
+      .from('resume_account_visibility')
+      .select('account_id, visible')
+      .eq('resume_id', resumeId);
+    for (const v of visRows || []) {
+      visibilityByAccount.set(v.account_id, !!v.visible);
+    }
+  } catch (_) {
+    // ignore visibility fetch errors; default to visible
+  }
   try {
     const { data: rAccounts, error: raErr } = await supabase
       .from('resume_accounts')
@@ -202,6 +215,11 @@ export async function getResume(resumeId) {
     if (raErr) throw raErr;
     accounts = (rAccounts || [])
       .map((row) => {
+        const accountId = row.accounts?.id || row.account_id;
+        const isVisible = visibilityByAccount.has(accountId)
+          ? !!visibilityByAccount.get(accountId)
+          : true;
+        if (!isVisible) return null; // hidden via visibility rules
         // If the related account row is hidden by RLS, row.accounts will be null.
         // Preserve a placeholder so the UI can show an anonymized/gated contact entry.
         if (row.accounts) {
@@ -215,6 +233,7 @@ export async function getResume(resumeId) {
             requiresAuth: !!row.accounts.requires_auth,
           };
         }
+        // Placeholder for RLS-hidden account, still respect visibility
         return {
           id: row.account_id, // fallback to the FK to keep ordering and dedupe
           name: row.label || 'Private contact',
@@ -239,15 +258,23 @@ export async function getResume(resumeId) {
       .select('id, name, icon, link, requires_auth')
       .order('name', { ascending: true });
     if (!accErr) {
-      accounts = (accs || []).map((a, idx) => ({
-        id: a.id,
-        name: a.name || '',
-        url: a.link || '',
-        icon: a.icon || null,
-        label: null,
-        position: idx,
-        requiresAuth: !!a.requires_auth,
-      })).filter((a) => a.id && a.url);
+      accounts = (accs || [])
+        .filter((a) => {
+          const isVisible = visibilityByAccount.has(a.id)
+            ? !!visibilityByAccount.get(a.id)
+            : true;
+          return isVisible;
+        })
+        .map((a, idx) => ({
+          id: a.id,
+          name: a.name || '',
+          url: a.link || '',
+          icon: a.icon || null,
+          label: null,
+          position: idx,
+          requiresAuth: !!a.requires_auth,
+        }))
+        .filter((a) => a.id && a.url);
     }
   }
 

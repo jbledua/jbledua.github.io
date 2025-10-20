@@ -364,6 +364,21 @@ create table if not exists public.resume_projects (
   primary key (resume_id, project_id)
 );
 
+-- Resume Account Visibility (defaults)
+-- Defines which Accounts are visible by default for a given Resume.
+-- Later, UI can allow per-session customization without persisting.
+create table if not exists public.resume_account_visibility (
+  resume_id uuid references public.resumes(id) on delete cascade,
+  account_id uuid references public.accounts(id) on delete cascade,
+  visible boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (resume_id, account_id)
+);
+create trigger trg_resume_account_visibility_updated_at before update on public.resume_account_visibility
+for each row execute function set_updated_at();
+create index if not exists resume_account_visibility_resume_idx on public.resume_account_visibility(resume_id);
+
 -- ---------- Generic UI visibility settings ----------
 -- Stores visibility toggles for UI elements in a generic way that can apply to Projects now
 -- and Jobs/Education in the future. Intended to be optional: if no rows exist, defaults apply.
