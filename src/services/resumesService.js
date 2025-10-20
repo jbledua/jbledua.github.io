@@ -142,6 +142,26 @@ export async function getResume(resumeId) {
     .select('id, school, degree, major, start_date, end_date')
     .order('start_date', { ascending: false });
   if (eErr) throw eErr;
+  // Fetch related skills for these education items (ordered)
+  const eduIds = (edu || []).map((e) => e.id);
+  const byEduSkills = new Map();
+  if (eduIds.length) {
+    const { data: eduSkills, error: esErr } = await supabase
+      .from('education_skills')
+      .select('education_id, position, skills(id, name)')
+      .in('education_id', eduIds)
+      .order('position', { ascending: true });
+    if (esErr) throw esErr;
+    for (const row of eduSkills || []) {
+      const k = row.education_id;
+      const name = row.skills?.name;
+      if (!name) continue;
+      if (!byEduSkills.has(k)) byEduSkills.set(k, []);
+      const arr = byEduSkills.get(k);
+      if (!arr.includes(name)) arr.push(name);
+    }
+  }
+
   const education = (edu || []).map((e) => ({
     id: e.id,
     label: e.school,
@@ -151,6 +171,7 @@ export async function getResume(resumeId) {
     period: buildPeriod(e.start_date, e.end_date),
     summary: null,
     bullets: [],
+    skills: byEduSkills.get(e.id) || [],
   }));
 
   // Certificates: show all, newest first

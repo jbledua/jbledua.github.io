@@ -240,6 +240,14 @@ create index if not exists education_school_idx on public.education using gin (s
 create trigger trg_education_updated_at before update on public.education
 for each row execute function set_updated_at();
 
+-- Education Skills (ordered)
+create table if not exists public.education_skills (
+  education_id uuid references public.education(id) on delete cascade,
+  skill_id uuid references public.skills(id) on delete cascade,
+  position int not null default 0,
+  primary key (education_id, skill_id)
+);
+
 create table if not exists public.certificates (
   id uuid primary key default gen_random_uuid(),
   name text not null,

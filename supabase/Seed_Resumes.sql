@@ -14,25 +14,21 @@ with s as (
     values (
         gen_random_uuid(),
         array[
-            'Technologist spanning systems, software, and cloud. Pragmatic, security-minded, and outcome-focused.',
-            'Builds reliable, scalable services and developer platforms with an automation-first approach—observability, CI/CD, and infrastructure-as-code baked in.',
-            'Leads with clarity and collaboration, turning ambiguous problems into shipped, measurable outcomes that improve customer experience.'
+            'Versatile IT professional with a track record of designing secure, scalable, and maintainable systems across MSP, non-profit, and enterprise environments. I combine deep technical expertise with process-building, documentation, and automation to improve reliability, reduce complexity, and empower teams.',
+            'As an IT Lead and consultant, I’ve owned infrastructure, identity, and collaboration platforms, while also delivering full-stack and DevOps solutions. I excel at turning real business needs into practical, long-lasting systems.'
         ],
         array[
-            'Automation-first',
-            'Clear comms',
-            'Customer impact',
-            'Secure-by-default',
-            'Data-informed decisions',
-            'Execution and ownership',
-            'Operational excellence (SLOs, on-call)',
-            'Cost-aware (performance + FinOps)',
-            'Mentorship and team growth'
+            'End-to-end IT leadership: identity, security, compliance, backup, M365/Entra ID, Intune',
+            'Infrastructure & DevOps: Docker, Tailscale, CI/CD pipelines, GitHub Actions, automation',
+            'Full-stack development: React/MUI front ends, Supabase schemas, secure APIs',
+            'Process & reliability: DR planning, RTO/RPO documentation, runbooks, SOPs, communication',
+            'Media & A/V systems: NDI/SDI, vMix, switchers, broadcast reliability engineering',
+            'Workflow automation: Power Automate, n8n, email templates, onboarding/offboarding flows'
         ]
     ) returning id
 )
 insert into public.resumes (id, title, profile_photo_id, style, summary_description_id)
-select gen_random_uuid(), 'Default', (select id from public.photos order by created_at asc limit 1), '{}'::jsonb, s.id from s;
+select gen_random_uuid(), 'IT Support', (select id from public.photos order by created_at asc limit 1), '{}'::jsonb, s.id from s;
 
 -- Link accounts, skills, jobs, and projects if available
 with r as (

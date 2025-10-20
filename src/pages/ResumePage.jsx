@@ -922,6 +922,25 @@ export default function ResumePage() {
                             ))}
                           </ul>
                         )}
+                        {Array.isArray(e.skills) && e.skills.length > 0 && (
+                          <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                            {e.skills.map((s) => {
+                              const scheme = skillLabelToScheme.get(s) || skillLabelToScheme.get(String(s).toLowerCase());
+                              const isHighlighted = normalizeLabel(s) === highlightedSkill;
+                              return (
+                                <Chip
+                                  key={s}
+                                  label={s}
+                                  size="small"
+                                  variant={isHighlighted ? 'filled' : 'outlined'}
+                                  color={scheme || 'default'}
+                                  onClick={() => triggerHighlight(s)}
+                                  sx={isHighlighted ? { animation: `${bounceKeyframes} 650ms ease` } : undefined}
+                                />
+                              );
+                            })}
+                          </Box>
+                        )}
                       </Box>
                     </Grid>
                   ))}
