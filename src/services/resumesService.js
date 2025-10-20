@@ -45,6 +45,7 @@ export async function getResume(resumeId) {
         type,
         start_date,
         end_date,
+        location:location_id(country, region, city),
         job_icon_light:job_icon_light_id(file_path, alt),
         job_icon_dark:job_icon_dark_id(file_path, alt)
       )
@@ -95,17 +96,20 @@ export async function getResume(resumeId) {
     const darkPath = j?.job_icon_dark?.file_path || null;
     const iconLight = lightPath ? getPublicStorageUrl(lightPath) : null;
     const iconDark = darkPath ? getPublicStorageUrl(darkPath) : null;
+    const loc = j?.location || null;
+    const locationText = buildLocation(loc?.city, loc?.region, loc?.country);
     const variant = {
-      title: `${j.role || 'Role'} · ${j.company || 'Company'}`,
+      title: `${j.company || 'Company'} · ${j.role || 'Role'}`,
       period: buildPeriod(j.start_date, j.end_date),
       employmentType: j.type || null,
+      location: locationText,
       summary: d.paragraphs?.[0] || null,
       bullets: d.bullets || [],
       skills: byJobSkills.get(rj.job_id) || [],
     };
     return {
       id: rj.job_id,
-      label: `${j.role || 'Role'} · ${j.company || 'Company'}`,
+      label: `${j.company || 'Company'} · ${j.role || 'Role'}`,
       enabled: true,
       iconLight,
       iconDark,
@@ -294,4 +298,12 @@ function buildPeriod(start, end) {
   if (!start && !end) return '';
   const fmt = (d) => (d ? new Date(d).getFullYear() : 'Present');
   return `${fmt(start)} — ${fmt(end)}`;
+}
+
+function buildLocation(city, region, country) {
+  const parts = [];
+  if (city) parts.push(city);
+  if (region) parts.push(region);
+  if (country) parts.push(country);
+  return parts.join(', ');
 }

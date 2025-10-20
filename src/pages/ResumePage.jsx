@@ -791,7 +791,7 @@ export default function ResumePage() {
               <Stack id="exp-list" spacing={2} sx={{ mb: 3 }}>
                 {experiencesToShow.map((e) => {
                   const v = e.variants[e.selectedVariant] || e.variants[0];
-                  const meta = [v.period, v.employmentType].filter(Boolean).join(' · ');
+                  const meta = [v.period, v.location].filter(Boolean).join(' · ');
 
                   // Job icon selection: prefer theme-matching variant, then alternate. If none in DB, no avatar.
                   const hasJobIcon = Boolean(e.iconLight || e.iconDark);
@@ -838,7 +838,7 @@ export default function ResumePage() {
                               },
                             }}
                           >
-                            {String(v.title || '?').split('·').pop()?.trim()?.charAt(0)?.toUpperCase() || '?'}
+                            {String(v.title || '?').split('·')[0]?.trim()?.charAt(0)?.toUpperCase() || '?'}
                           </Avatar>
                         ) : undefined}
                         title={v.title}
