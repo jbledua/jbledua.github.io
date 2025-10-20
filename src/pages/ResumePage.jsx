@@ -70,6 +70,22 @@ export default function ResumePage() {
   const theme = useTheme();
   const toSlug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
+  // Shared interactive Card styles (hover/transition/border). Use overrides per-card for layout needs.
+  const interactiveCardSx = (overrides = {}) => (theme) => ({
+    borderColor: 'divider',
+    transition: theme.transitions.create(
+      ['box-shadow', 'transform', 'border-color'],
+      { duration: theme.transitions.duration.shorter }
+    ),
+    '&:hover': {
+      boxShadow: 6,
+      transform: 'translateY(-2px)',
+      borderColor: 'primary.main',
+      borderWidth: 2,
+    },
+    ...overrides,
+  });
+
   // Map each skill group to a stable color scheme from the theme palette
   const paletteSchemes = ['primary', 'secondary', 'success', 'info', 'warning', 'error'];
   const hashString = (str) => {
@@ -621,7 +637,7 @@ export default function ResumePage() {
 
 
                   return (
-                    <Card key={e.id} variant="outlined" sx={{ borderColor: 'divider' }}>
+                    <Card key={e.id} variant="outlined" sx={interactiveCardSx()}>
                       <CardHeader
                         avatar={hasJobIcon ? (
                           <Avatar
@@ -720,23 +736,12 @@ export default function ResumePage() {
 
                     <Card
                       variant="outlined"
-                      sx={{
+                      sx={interactiveCardSx({
                         display: 'flex',
                         flexDirection: 'column',
                         height: '100%',
-                        padding: 1,
-                        borderColor: 'divider',
-                        transition: (theme) => theme.transitions.create(
-                          ['box-shadow', 'transform', 'border-color'],
-                          { duration: theme.transitions.duration.shorter }
-                        ),
-                        '&:hover': {
-                          boxShadow: 6,
-                          transform: 'translateY(-2px)',
-                          borderColor: 'primary.main',
-                          borderWidth: 2,
-                        },
-                      }}
+                        p: 1,
+                      })}
                     >
                       <CardHeader
                         avatar={p.showIcon !== false ? (

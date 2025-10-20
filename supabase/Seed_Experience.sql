@@ -36,29 +36,95 @@ select gen_random_uuid(), company, role, type, loc, start_d, end_d from jobs_src
 -- Seed Backslash Designs logos and link to job
 with existing_photos as (
   select id, file_path from public.photos where file_path in (
-    'public/photos/logos/BSD-Logo-Dark.png',
-    'public/photos/logos/BSD-Logo-Light.png'
+    'photos/logos/BSD-Logo-Dark.png',
+    'photos/logos/BSD-Logo-Light.png'
   )
 ), ins_dark as (
   insert into public.photos (title, file_path, alt, width, height)
-  select 'Backslash Designs Logo (Dark)', 'public/photos/logos/BSD-Logo-Dark.png', 'Backslash Designs logo - dark', null, null
-  where not exists (select 1 from existing_photos where file_path='public/photos/logos/BSD-Logo-Dark.png')
+  select 'Backslash Designs Logo (Dark)', 'photos/logos/BSD-Logo-Dark.png', 'Backslash Designs logo - dark', null, null
+  where not exists (select 1 from existing_photos where file_path='photos/logos/BSD-Logo-Dark.png')
   returning id
 ), ins_light as (
   insert into public.photos (title, file_path, alt, width, height)
-  select 'Backslash Designs Logo (Light)', 'public/photos/logos/BSD-Logo-Light.png', 'Backslash Designs logo - light', null, null
-  where not exists (select 1 from existing_photos where file_path='public/photos/logos/BSD-Logo-Light.png')
+  select 'Backslash Designs Logo (Light)', 'photos/logos/BSD-Logo-Light.png', 'Backslash Designs logo - light', null, null
+  where not exists (select 1 from existing_photos where file_path='photos/logos/BSD-Logo-Light.png')
   returning id
 ), ph as (
   select id, file_path from existing_photos
-  union all select id, 'public/photos/logos/BSD-Logo-Dark.png' from ins_dark
-  union all select id, 'public/photos/logos/BSD-Logo-Light.png' from ins_light
+  union all select id, 'photos/logos/BSD-Logo-Dark.png' from ins_dark
+  union all select id, 'photos/logos/BSD-Logo-Light.png' from ins_light
 ), job as (
   select id from public.jobs where company='Backslash Designs' and role='Owner' order by start_date desc nulls last limit 1
 ), dark as (
-  select id from ph where file_path='public/photos/logos/BSD-Logo-Dark.png' limit 1
+  select id from ph where file_path='photos/logos/BSD-Logo-Dark.png' limit 1
 ), light as (
-  select id from ph where file_path='public/photos/logos/BSD-Logo-Light.png' limit 1
+  select id from ph where file_path='photos/logos/BSD-Logo-Light.png' limit 1
+)
+update public.jobs j
+set job_icon_dark_id = coalesce(j.job_icon_dark_id, (select id from dark)),
+    job_icon_light_id = coalesce(j.job_icon_light_id, (select id from light))
+from job
+where j.id = job.id;
+
+-- Seed NorthWind Family Ministries logos and link to job
+with existing_photos as (
+  select id, file_path from public.photos where file_path in (
+    'photos/logos/NFM-Logo-Dark.png',
+    'photos/logos/NFM-Logo-Light.png'
+  )
+), ins_dark as (
+  insert into public.photos (title, file_path, alt, width, height)
+  select 'NorthWind Family Ministries Logo (Dark)', 'photos/logos/NFM-Logo-Dark.png', 'NorthWind Family Ministries logo - dark', null, null
+  where not exists (select 1 from existing_photos where file_path='photos/logos/NFM-Logo-Dark.png')
+  returning id
+), ins_light as (
+  insert into public.photos (title, file_path, alt, width, height)
+  select 'NorthWind Family Ministries Logo (Light)', 'photos/logos/NFM-Logo-Light.png', 'NorthWind Family Ministries logo - light', null, null
+  where not exists (select 1 from existing_photos where file_path='photos/logos/NFM-Logo-Light.png')
+  returning id
+), ph as (
+  select id, file_path from existing_photos
+  union all select id, 'photos/logos/NFM-Logo-Dark.png' from ins_dark
+  union all select id, 'photos/logos/NFM-Logo-Light.png' from ins_light
+), job as (
+  select id from public.jobs where company='NorthWind Family Ministries' and role='Information Technology Lead' order by start_date desc nulls last limit 1
+), dark as (
+  select id from ph where file_path='photos/logos/NFM-Logo-Dark.png' limit 1
+), light as (
+  select id from ph where file_path='photos/logos/NFM-Logo-Light.png' limit 1
+)
+update public.jobs j
+set job_icon_dark_id = coalesce(j.job_icon_dark_id, (select id from dark)),
+    job_icon_light_id = coalesce(j.job_icon_light_id, (select id from light))
+from job
+where j.id = job.id;
+
+-- Seed JIG Technologies Inc logos and link to job
+with existing_photos as (
+  select id, file_path from public.photos where file_path in (
+    'photos/logos/JIG-Logo-Dark.png',
+    'photos/logos/JIG-Logo-Light.png'
+  )
+), ins_dark as (
+  insert into public.photos (title, file_path, alt, width, height)
+  select 'JIG Technologies Inc Logo (Dark)', 'photos/logos/JIG-Logo-Dark.png', 'JIG Technologies Inc logo - dark', null, null
+  where not exists (select 1 from existing_photos where file_path='photos/logos/JIG-Logo-Dark.png')
+  returning id
+), ins_light as (
+  insert into public.photos (title, file_path, alt, width, height)
+  select 'JIG Technologies Inc Logo (Light)', 'photos/logos/JIG-Logo-Light.png', 'JIG Technologies Inc logo - light', null, null
+  where not exists (select 1 from existing_photos where file_path='photos/logos/JIG-Logo-Light.png')
+  returning id
+), ph as (
+  select id, file_path from existing_photos
+  union all select id, 'photos/logos/JIG-Logo-Dark.png' from ins_dark
+  union all select id, 'photos/logos/JIG-Logo-Light.png' from ins_light
+), job as (
+  select id from public.jobs where company='JIG Technologies Inc' and role='Remote Support Technician (Level 1)' order by start_date desc nulls last limit 1
+), dark as (
+  select id from ph where file_path='photos/logos/JIG-Logo-Dark.png' limit 1
+), light as (
+  select id from ph where file_path='photos/logos/JIG-Logo-Light.png' limit 1
 )
 update public.jobs j
 set job_icon_dark_id = coalesce(j.job_icon_dark_id, (select id from dark)),
@@ -102,14 +168,14 @@ with job as (
 ), ins as (
   insert into public.descriptions (paragraphs, bullets)
   select array['Level 1 remote support for SMB clients: triaged desktop/server issues, handled account lifecycle and hardware setup, and delivered responsive support against strict SLAs.']::text[],
-         array[
-           'Resolved desktop-related tickets and routine server issues; connected displays, restored email service, and performed proactive maintenance.',
-           'Provisioned and deprovisioned user accounts; configured endpoints to streamline onboarding and offboarding.',
-           'Provided professional remote support via phone and email; handled 4–5 concurrent tickets while meeting a 15‑min response and 1‑day resolution SLA.',
-           'Escalated complex cases with teammates and supervisors to ensure timely resolution and minimal downtime.',
-           'Maintained accurate ticket notes, resolutions, and client communications for auditability and trend analysis.',
-           'Continually improved product and platform knowledge to deliver current, effective solutions.'
-         ]::text[]
+        array[
+          'Resolved desktop-related tickets and routine server issues; connected displays, restored email service, and performed proactive maintenance.',
+          'Provisioned and deprovisioned user accounts; configured endpoints to streamline onboarding and offboarding.',
+          'Provided professional remote support via phone and email; handled 4–5 concurrent tickets while meeting a 15‑min response and 1‑day resolution SLA.',
+          'Escalated complex cases with teammates and supervisors to ensure timely resolution and minimal downtime.',
+          'Maintained accurate ticket notes, resolutions, and client communications for auditability and trend analysis.',
+          'Continually improved product and platform knowledge to deliver current, effective solutions.'
+        ]::text[]
   where not exists (select 1 from existing)
   returning id
 ), d as (
@@ -145,12 +211,12 @@ with job as (
 ), ins as (
   insert into public.descriptions (paragraphs, bullets)
   select array['Worked on a C++/Qt backend on a Kubuntu server that communicated with a balloon server via a proprietary protocol, with a React front end consuming a RESTful API.']::text[],
-         array[
-           'Contributed to backend services in C++ using Qt on Kubuntu; integrated with a proprietary protocol maintained by the team.',
-           'Helped design RESTful API endpoints for the front end; documented request/response shapes for integration.',
-           'Developed React components to visualize device/balloon state and trigger backend actions.',
-           'Worked in a Linux server environment: basic service supervision, logging, and troubleshooting.'
-         ]::text[]
+        array[
+          'Contributed to backend services in C++ using Qt on Kubuntu; integrated with a proprietary protocol maintained by the team.',
+          'Helped design RESTful API endpoints for the front end; documented request/response shapes for integration.',
+          'Developed React components to visualize device/balloon state and trigger backend actions.',
+          'Worked in a Linux server environment: basic service supervision, logging, and troubleshooting.'
+        ]::text[]
   where not exists (select 1 from existing_new)
         and not exists (select 1 from existing_old)
   returning id
