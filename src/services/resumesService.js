@@ -294,6 +294,38 @@ export async function getResume(resumeId) {
   };
 }
 
+// Return all public accounts (those that do not require auth). Each account includes
+// id, name, url, and resolved public icon URL (or null).
+export async function listPublicAccounts() {
+  // Fetch accounts where requires_auth is false or null (treat null as public)
+  const { data: accs, error: accErr } = await supabase
+    .from('accounts')
+    .select('id, name, icon, link, requires_auth')
+    .order('name', { ascending: true })
+    .or('requires_auth.eq.false,requires_auth.is.null');
+
+  if (accErr) throw accErr;
+
+  const mapIcon = (icon) => {
+    if (!icon) return null;
+    const str = String(icon);
+    // Treat as URL/storage path when it looks like one (contains slashes, dots, or starts with http)
+    const looksLikePath = /^https?:\/\//i.test(str) || /\//.test(str) || /\./.test(str) || /storage\/v1/i.test(str);
+    return looksLikePath ? getPublicStorageUrl(str) : str;
+  };
+
+  return (accs || [])
+    .map((a) => ({
+      id: a.id,
+      name: a.name || '',
+      url: a.link || '',
+      // Only convert to a storage public URL when the icon looks like a path/URL
+      icon: mapIcon(a.icon),
+      requiresAuth: !!a.requires_auth,
+    }))
+    .filter((a) => a.id && a.url);
+}
+
 function buildPeriod(start, end) {
   if (!start && !end) return '';
   const fmt = (d) => (d ? new Date(d).getFullYear() : 'Present');

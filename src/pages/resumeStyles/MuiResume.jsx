@@ -65,11 +65,28 @@ export default function MuiResume(props) {
     }
   };
 
+  const ICON_MAP = {
+    github: <GitHub fontSize="small" />,
+    linkedin: <LinkedIn fontSize="small" />,
+    x: <Twitter fontSize="small" />,
+    twitter: <Twitter fontSize="small" />,
+    facebook: <Facebook fontSize="small" />,
+    instagram: <Instagram fontSize="small" />,
+    website: <Website fontSize="small" />,
+    email: <Email fontSize="small" />,
+    phone: <Phone fontSize="small" />,
+  };
+
   const getIcon = (name, iconStr) => {
-    const key = String(iconStr || name || '').toLowerCase();
+    const keyIcon = String(iconStr || '').toLowerCase();
+    const keyName = String(name || '').toLowerCase();
+    if (ICON_MAP[keyIcon]) return ICON_MAP[keyIcon];
+    if (ICON_MAP[keyName]) return ICON_MAP[keyName];
+
+    const key = `${keyIcon} ${keyName}`;
     if (key.includes('git')) return <GitHub fontSize="small" />;
     if (key.includes('linkedin')) return <LinkedIn fontSize="small" />;
-    if (key.includes('twitter') || key === 'x') return <Twitter fontSize="small" />;
+    if (key.includes('twitter') || key.includes(' x') || key === 'x') return <Twitter fontSize="small" />;
     if (key.includes('facebook')) return <Facebook fontSize="small" />;
     if (key.includes('instagram')) return <Instagram fontSize="small" />;
     if (key.includes('website')) return <Website fontSize="small" />;
