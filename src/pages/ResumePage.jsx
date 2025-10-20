@@ -763,7 +763,7 @@ export default function ResumePage() {
           <Divider sx={{ my: 3 }} />
 
           {/* Experience */}
-          <Box className="resume-section">
+          <Box>
             <Typography variant="h6" gutterBottom>Experience</Typography>
             {loading ? (
               <Stack id="exp-list" spacing={2} sx={{ mb: 3 }}>
@@ -891,7 +891,7 @@ export default function ResumePage() {
           <Divider sx={{ my: 3 }} />
 
           {/* Projects */}
-          <Box className="resume-section">
+          <Box>
             <Typography variant="h6" gutterBottom>Projects</Typography>
             {loading ? (
               <Grid container spacing={2}>
