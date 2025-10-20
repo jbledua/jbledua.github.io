@@ -196,21 +196,37 @@ export async function getResume(resumeId) {
   try {
     const { data: rAccounts, error: raErr } = await supabase
       .from('resume_accounts')
-      .select('position, label, accounts:accounts(*)')
+      .select('account_id, position, label, accounts:accounts(*)')
       .eq('resume_id', resumeId)
       .order('position', { ascending: true });
     if (raErr) throw raErr;
     accounts = (rAccounts || [])
-      .map((row) => ({
-        id: row.accounts?.id,
-        name: row.accounts?.name || '',
-        url: row.accounts?.link || '',
-        icon: row.accounts?.icon || null,
-        label: row.label || null,
-        position: row.position ?? 0,
-        requiresAuth: !!row.accounts?.requires_auth,
-      }))
-      .filter((a) => a.id && a.url);
+      .map((row) => {
+        // If the related account row is hidden by RLS, row.accounts will be null.
+        // Preserve a placeholder so the UI can show an anonymized/gated contact entry.
+        if (row.accounts) {
+          return {
+            id: row.accounts.id,
+            name: row.accounts.name || '',
+            url: row.accounts.link || '',
+            icon: row.accounts.icon || null,
+            label: row.label || null,
+            position: row.position ?? 0,
+            requiresAuth: !!row.accounts.requires_auth,
+          };
+        }
+        return {
+          id: row.account_id, // fallback to the FK to keep ordering and dedupe
+          name: row.label || 'Private contact',
+          url: '', // not accessible due to RLS
+          icon: null,
+          label: row.label || null,
+          position: row.position ?? 0,
+          requiresAuth: true,
+        };
+      })
+      // Keep any row that has an id so placeholders remain visible in UI
+      .filter((a) => a && a.id);
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error('Failed to load resume_accounts, will try fallback accounts:', e?.message || e);

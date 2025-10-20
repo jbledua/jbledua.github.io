@@ -498,15 +498,18 @@ export default function ResumePage() {
           {/* Header: photo + summary */}
           <Box className="resume-section">
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ xs: 'center', sm: 'flex-start' }}>
-              {state.options.includePhoto ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: { xs: 'center', sm: 'stretch' }, gap: 1, minWidth: { sm: 240 } }}>
-                  <Avatar src={PROFILE_IMG} alt={NAME} sx={{ width: 120, height: 120, border: '2px solid', borderColor: 'divider' }} />
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: { xs: 'center', sm: 'stretch' }, gap: 1, minWidth: { sm: 240 } }}>
+                {state.options.includePhoto ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1 }}>
+                      <Avatar src={PROFILE_IMG} alt={NAME} sx={{ width: 200, height: 200, border: '2px solid', borderColor: 'divider' }} />
+                    </Box>):(
+                    <Box sx={{ height: 16 }} />
+                )}
+                {/* Contact section as a Card */}
+                <Typography variant="h6" gutterBottom>Contact</Typography>
                   
-                  
-                  {/* Contact section */}
-                  <Box sx={{ width: '100%', mt: 1 }}>
-                    <Divider sx={{ mb: 1 }} />
-                    <Typography variant="h6" gutterBottom>Contact</Typography>
+                <Card variant="outlined" sx={{ width: '100%', mt: 1 }}>
+                  <CardContent sx={{ pt: 0 }}> 
                     {(() => {
                       const isAuthed = !!session;
                       const formatUrlDisplay = (url) => {
@@ -522,18 +525,27 @@ export default function ResumePage() {
                             .replace(/\/+$/, '');
                         }
                       };
-                      const formatContactText = (url) => {
-                        if (/^mailto:/i.test(url)) {
-                          const email = url.replace(/^mailto:/i, '');
-                          return isAuthed ? email : 'email (sign in)';
+                      const formatContactText = (name, url, requiresAuth) => {
+                        if (url) {
+                          if (/^mailto:/i.test(url)) {
+                            const email = url.replace(/^mailto:/i, '');
+                            return isAuthed ? email : 'email (sign in)';
+                          }
+                          if (/^tel:/i.test(url)) {
+                            const phone = url.replace(/^tel:/i, '');
+                            return isAuthed ? phone : 'phone (sign in)';
+                          }
+                          return formatUrlDisplay(url);
                         }
-                        if (/^tel:/i.test(url)) {
-                          const phone = url.replace(/^tel:/i, '');
-                          return isAuthed ? phone : 'phone (sign in)';
+                        if (requiresAuth) {
+                          const key = String(name || '').toLowerCase();
+                          if (key.includes('email')) return 'email (sign in)';
+                          if (key.includes('phone')) return 'phone (sign in)';
+                          return 'private (sign in)';
                         }
-                        return formatUrlDisplay(url);
+                        return '';
                       };
-                      const getIcon = (name, iconStr, url) => {
+                      const getIcon = (name, iconStr) => {
                         const key = String(iconStr || name || '').toLowerCase();
                         if (key.includes('git')) return <GitHub fontSize="small" />;
                         if (key.includes('linkedin')) return <LinkedIn fontSize="small" />;
@@ -555,14 +567,14 @@ export default function ResumePage() {
                         return `Open ${t}`;
                       };
                       const items = (state.accounts || [])
-                        .filter((a) => a && a.url)
+                        .filter((a) => a && (a.url || a.requiresAuth))
                         .map((a) => ({
                           key: a.id,
                           url: a.url,
-                          icon: getIcon(a.name, a.icon, a.url),
-                          text: formatContactText(a.url),
-                          tooltip: getTooltip(a.name, a.url),
-                          ariaLabel: getAriaLabel(a.name, a.url),
+                          icon: getIcon(a.name, a.icon),
+                          text: formatContactText(a.name, a.url, !!a.requiresAuth),
+                          tooltip: getTooltip(a.label || a.name, a.url),
+                          ariaLabel: getAriaLabel(a.label || a.name, a.url),
                           requiresAuth: !!a.requiresAuth,
                         }));
                       return (
@@ -571,21 +583,21 @@ export default function ResumePage() {
                             <Stack key={it.key} direction="row" spacing={1} alignItems="center">
                               <Tooltip title={it.requiresAuth && !isAuthed ? 'Sign in to view' : it.tooltip}>
                                 <IconButton
-                                  component={it.requiresAuth && !isAuthed ? 'button' : Link}
-                                  href={it.requiresAuth && !isAuthed ? undefined : it.url}
+                                  component={it.requiresAuth && !isAuthed ? 'button' : (it.url ? Link : 'button')}
+                                  href={it.requiresAuth && !isAuthed ? undefined : (it.url || undefined)}
                                   onClick={it.requiresAuth && !isAuthed ? () => {
                                     const email = prompt('Enter your email for a magic link:');
                                     if (email) signInWithMagicLink(email).catch((e) => console.error(e));
                                   } : undefined}
-                                  target={it.requiresAuth && !isAuthed ? undefined : "_blank"}
-                                  rel={it.requiresAuth && !isAuthed ? undefined : "noreferrer"}
+                                  target={it.requiresAuth && !isAuthed ? undefined : (it.url ? "_blank" : undefined)}
+                                  rel={it.requiresAuth && !isAuthed ? undefined : (it.url ? "noreferrer" : undefined)}
                                   aria-label={it.ariaLabel}
                                   size="small"
                                 >
                                   {it.icon}
                                 </IconButton>
                               </Tooltip>
-                              {it.requiresAuth && !isAuthed ? (
+                              {(it.requiresAuth && !isAuthed) || !it.url ? (
                                 <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                                   {it.text}
                                 </Typography>
@@ -599,11 +611,9 @@ export default function ResumePage() {
                         </Stack>
                       );
                     })()}
-                  </Box>
-                </Box>
-              ) : (
-                <Box sx={{ width: 120, height: 120 }} />
-              )}
+                  </CardContent>
+                </Card>
+              </Box>
               <Box sx={{ flex: 1 }}>
                 <Typography variant="h4" gutterBottom>{NAME}</Typography>
                 <Divider sx={{ mb: 1 }} />
