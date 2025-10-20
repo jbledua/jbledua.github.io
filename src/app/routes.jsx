@@ -8,12 +8,14 @@ const NotFoundPage = lazy(() => import('../pages/NotFoundPage.jsx'));
 const About = lazy(() => import('../pages/AboutPage.jsx'));
 const ResumeBuilder = lazy(() => import('../pages/ResumePage.jsx'));
 const LoginPage = lazy(() => import('../pages/LoginPage.jsx'));
+const Privacy = lazy(() => import('../pages/PrivacyPage.jsx'));
 
 export const routes = [
   { path: '/', element: <Home /> },
   { path: '/about', element: <About /> },
   { path: '/projects', element: <Projects /> },
   { path: '/resume', element: <ResumeBuilder /> },
+  { path: '/privacy', element: <Privacy /> },
   { path: '/contact', element: <Contact /> },
   // Admin login (not shown in nav)
   { path: '/login', element: <LoginPage />, hidden: true },
