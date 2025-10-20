@@ -6,6 +6,7 @@ import Box from '@mui/material/Box';
 import Section from '../components/Section.jsx';
 import Hero from '../components/Hero.jsx';
 import { Divider } from '@mui/material';
+import ProjectCarousel from '../components/ProjectCarousel.jsx';
 
 export default function Home() {
   return (
@@ -33,6 +34,23 @@ export default function Home() {
             </Stack>
           </Box>
         </Stack>
+      </Section>
+      {/* Projects Section - Elevated Paper with caroseling Project cards */}
+
+      <Divider sx={{ my: 4 }} />
+      <Section>
+        <Typography variant="h4" component="h2" gutterBottom>
+          Featured Projects
+        </Typography>
+        {/** Carousel of Project cards goes here */}
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="body1" color="text.secondary">
+            Check out some of my featured projects below!
+          </Typography>
+          <Box sx={{ mt: 2 }}>
+            <ProjectCarousel speed={18} visible={3} />
+          </Box>
+        </Box>
       </Section>
     </>
   );

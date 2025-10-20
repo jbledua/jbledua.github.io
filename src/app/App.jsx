@@ -9,6 +9,7 @@ import Footer from '../components/Footer.jsx';
 import Drawer from '@mui/material/Drawer';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { DrawerProvider, useDrawer } from '../components/DrawerContext.jsx';
+import LinearProgress from '@mui/material/LinearProgress';
 
 function AppContent() {
   const theme = useTheme();
