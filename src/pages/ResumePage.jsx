@@ -537,7 +537,7 @@ export default function ResumePage() {
                 <Typography variant="h6" gutterBottom>Contact</Typography>
                   
                 <Card variant="outlined" sx={{ width: '100%', mt: 1 }}>
-                  <CardContent sx={{ pt: 0 }}> 
+                  <CardContent sx={{ pt: 2 }}> 
                     {(() => {
                       const isAuthed = !!session;
                       const formatUrlDisplay = (url) => {
@@ -557,19 +557,19 @@ export default function ResumePage() {
                         if (url) {
                           if (/^mailto:/i.test(url)) {
                             const email = url.replace(/^mailto:/i, '');
-                            return isAuthed ? email : 'email (sign in)';
+                            return isAuthed ? email : 'Email available on request';
                           }
                           if (/^tel:/i.test(url)) {
                             const phone = url.replace(/^tel:/i, '');
-                            return isAuthed ? phone : 'phone (sign in)';
+                            return isAuthed ? phone : 'Phone available on request';
                           }
                           return formatUrlDisplay(url);
                         }
                         if (requiresAuth) {
                           const key = String(name || '').toLowerCase();
-                          if (key.includes('email')) return 'email (sign in)';
-                          if (key.includes('phone')) return 'phone (sign in)';
-                          return 'private (sign in)';
+                          if (key.includes('email')) return 'Email available on request';
+                          if (key.includes('phone')) return 'Phone available on request';
+                          return 'Full contact available on request';
                         }
                         return '';
                       };
@@ -609,14 +609,10 @@ export default function ResumePage() {
                         <Stack spacing={1}>
                           {items.map((it) => (
                             <Stack key={it.key} direction="row" spacing={1} alignItems="center">
-                              <Tooltip title={it.requiresAuth && !isAuthed ? 'Sign in to view' : it.tooltip}>
+                              <Tooltip title={it.requiresAuth && !isAuthed ? 'Full contact available on request' : it.tooltip}>
                                 <IconButton
                                   component={it.requiresAuth && !isAuthed ? 'button' : (it.url ? Link : 'button')}
                                   href={it.requiresAuth && !isAuthed ? undefined : (it.url || undefined)}
-                                  onClick={it.requiresAuth && !isAuthed ? () => {
-                                    const email = prompt('Enter your email for a magic link:');
-                                    if (email) signInWithMagicLink(email).catch((e) => console.error(e));
-                                  } : undefined}
                                   target={it.requiresAuth && !isAuthed ? undefined : (it.url ? "_blank" : undefined)}
                                   rel={it.requiresAuth && !isAuthed ? undefined : (it.url ? "noreferrer" : undefined)}
                                   aria-label={it.ariaLabel}
@@ -625,7 +621,11 @@ export default function ResumePage() {
                                   {it.icon}
                                 </IconButton>
                               </Tooltip>
-                              {(it.requiresAuth && !isAuthed) || !it.url ? (
+                              {it.requiresAuth && !isAuthed ? (
+                                <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                                  {it.text}
+                                </Typography>
+                              ) : !it.url ? (
                                 <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                                   {it.text}
                                 </Typography>
@@ -640,6 +640,18 @@ export default function ResumePage() {
                       );
                     })()}
                   </CardContent>
+                  {!session && (
+                    <CardActions>
+                      <Button
+                        size="small"
+                        color="primary"
+                        component={RouterLink}
+                        to="/contact?topic=request-full-contact"
+                      >
+                        Request full contact
+                      </Button>
+                    </CardActions>
+                  )}
                 </Card>
               </Box>
               <Box sx={{ flex: 1 }}>
