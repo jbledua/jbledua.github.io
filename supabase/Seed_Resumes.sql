@@ -104,3 +104,100 @@ with r as (
 insert into public.resume_account_visibility (resume_id, account_id, visible)
 select r.id, a.id, false from r, a
 on conflict (resume_id, account_id) do update set visible = excluded.visible;
+
+-- -------------------------------
+-- Add a comprehensive "All" resume
+-- Includes ALL accounts, skills, jobs, and projects
+-- -------------------------------
+
+-- Create the "All" resume if it doesn't already exist
+with d as (
+    -- Reuse an existing description (oldest) to keep seeds simple
+    select id from public.descriptions order by created_at asc limit 1
+), p as (
+    -- Reuse the earliest profile photo if available
+    select id from public.photos order by created_at asc limit 1
+)
+insert into public.resumes (id, title, profile_photo_id, style, summary_description_id)
+select gen_random_uuid(), 'All', p.id, '{"ui":"MUI"}'::jsonb, d.id
+from d, p
+where not exists (
+    select 1 from public.resumes where title = 'All'
+);
+
+-- Link ALL accounts to the "All" resume, ordered by name
+with r as (
+    select id from public.resumes where title = 'All' order by created_at desc limit 1
+)
+insert into public.resume_accounts (resume_id, account_id, label, position)
+select r.id, a.id, null, row_number() over(order by a.name) - 1
+from r cross join public.accounts a
+on conflict (resume_id, account_id)
+do update set position = excluded.position;
+
+-- Link ALL skills to the "All" resume, ordered by name
+with r as (
+    select id from public.resumes where title = 'All' order by created_at desc limit 1
+), s as (
+    select id, row_number() over(order by name) - 1 as pos from public.skills
+)
+insert into public.resume_skills (resume_id, skill_id, position)
+select r.id, s.id, s.pos from r, s
+on conflict (resume_id, skill_id)
+do update set position = excluded.position;
+
+-- Link ALL jobs to the "All" resume, ordered by most recent start_date (nulls last)
+with r as (
+    select id from public.resumes where title = 'All' order by created_at desc limit 1
+), j as (
+    select id, row_number() over(order by start_date desc nulls last, end_date desc nulls last, id) - 1 as pos
+    from public.jobs
+)
+insert into public.resume_jobs (resume_id, job_id, position)
+select r.id, j.id, j.pos from r, j
+on conflict (resume_id, job_id)
+do update set position = excluded.position;
+
+-- Link ALL projects to the "All" resume, ordered by title
+with r as (
+    select id from public.resumes where title = 'All' order by created_at desc limit 1
+), p as (
+    select id, row_number() over(order by title, id) - 1 as pos from public.projects
+)
+insert into public.resume_projects (resume_id, project_id, position)
+select r.id, p.id, p.pos from r, p
+on conflict (resume_id, project_id)
+do update set position = excluded.position;
+
+-- Ensure ALL accounts are visible on the "All" resume
+with r as (
+    select id from public.resumes where title = 'All' order by created_at desc limit 1
+), a as (
+    select id from public.accounts
+)
+insert into public.resume_account_visibility (resume_id, account_id, visible)
+select r.id, a.id, true from r, a
+on conflict (resume_id, account_id)
+do update set visible = excluded.visible;
+
+-- Explicit ordering for All resume: Phone, Email, Website, LinkedIn, GitHub, Facebook, Instagram, X
+with r as (
+    select id from public.resumes where title = 'All' order by created_at desc limit 1
+), desired(name, pos) as (
+    values
+        ('Phone', 0),
+        ('Email', 1),
+        ('Website', 2),
+        ('LinkedIn', 3),
+        ('GitHub', 4),
+        ('Facebook', 5),
+        ('Instagram', 6),
+        ('X', 7)
+)
+insert into public.resume_accounts (resume_id, account_id, label, position)
+select r.id, a.id, null, d.pos
+from r
+join desired d on true
+join public.accounts a on lower(a.name) = lower(d.name)
+on conflict (resume_id, account_id)
+do update set position = excluded.position;
