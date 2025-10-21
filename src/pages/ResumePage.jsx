@@ -39,6 +39,7 @@ import { useDrawer } from '../components/DrawerContext.jsx';
 import QrWithLogo from '../components/QrWithLogo.jsx';
 import ResumeBuilderDrawerContent from '../components/ResumeDrawer.jsx';
 import MuiResume from './resumeStyles/MuiResume.jsx';
+import PlainResume from './resumeStyles/PlainResume.jsx';
 import Link from '@mui/material/Link';
 import { GitHub, LinkedIn, Facebook, Twitter, Instagram, Link as LinkIcon, Email, Phone } from '@mui/icons-material';
 
@@ -469,8 +470,12 @@ export default function ResumePage() {
     return () => setContent(null);
   }, [drawerContent, setContent]);
 
-  // Determine active resume style; default if missing/unknown
-  const resumeStyleKey = String(state?.style?.ui || 'default').toLowerCase();
+  // Determine active resume style; support either an object with { ui } or a raw string.
+  const styleRaw = state?.style;
+  const styleUi = (styleRaw && typeof styleRaw === 'object' && Object.prototype.hasOwnProperty.call(styleRaw, 'ui'))
+    ? styleRaw.ui
+    : styleRaw;
+  const resumeStyleKey = String(styleUi || 'default').trim().toLowerCase();
 
   return (
     <Section>
@@ -536,6 +541,30 @@ export default function ResumePage() {
       {(() => {
         // Switch on style to render different layouts; fallback to default (current MUI layout)
         switch (resumeStyleKey) {
+          case 'plain':
+          case 'plain-text':
+          case 'plaintext':
+          case 'text':
+          case 'txt':
+            return (
+              <PlainResume
+                loading={loading}
+                state={state}
+                session={session}
+                PROFILE_IMG={PROFILE_IMG}
+                NAME={NAME}
+                summaryFormat={summaryFormat}
+                printRef={printRef}
+                error={error}
+                experiencesToShow={experiencesToShow}
+                projectsToShow={projectsToShow}
+                skillsToShow={skillsToShow}
+                educationToShow={educationToShow}
+                certificatesToShow={certificatesToShow}
+                normalizeLabel={normalizeLabel}
+                theme={theme}
+              />
+            );
           case 'mui':
           case 'default':
           default:

@@ -15,7 +15,7 @@ export async function getResume(resumeId) {
   // Resume core
   const { data: resume, error: rErr } = await supabase
     .from('resumes')
-    .select('id, title, profile_photo_id, summary_description_id')
+    .select('id, title, profile_photo_id, summary_description_id, style')
     .eq('id', resumeId)
     .single();
   if (rErr) throw rErr;
@@ -283,6 +283,7 @@ export async function getResume(resumeId) {
   }
 
   return {
+    style: resume?.style || {},
     options: { includePhoto: !!resume.profile_photo_id },
     summaryVariant: 0,
     summaryVariants: [{ bulletLines: summary.bullets || [], pointLines: summary.bullets || [], paragraphs: summary.paragraphs || [] }],
