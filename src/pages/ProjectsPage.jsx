@@ -174,7 +174,7 @@ export default function Projects() {
       </Box>
       <Grid container spacing={2}>
         {(loading && !projectCards.length ? Array.from({ length: 6 }) : projectCards).map((p, idx) => (
-          <Grid key={p?.id || idx} size={4}>
+          <Grid key={p?.id || idx} size={{ xs: 12, sm: 6, md: 4 }}>
             {p ? (
               <ProjectCard data={p} />
             ) : (
