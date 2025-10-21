@@ -137,10 +137,10 @@ with job as (
   select id from public.jobs where company='Backslash Designs' and role='Owner' order by start_date desc nulls last limit 1
 ), existing as (
   select id from public.descriptions
-  where paragraphs[1] = 'Owner of a boutique tech studio delivering managed IT, DevOps, and full‑stack projects for SMBs and non-profits.'
+  where paragraphs[1] = 'Owner of an independent tech studio delivering managed IT, DevOps, and full‑stack projects for SMBs and non-profits.'
 ), ins as (
   insert into public.descriptions (paragraphs, bullets)
-  select array['Owner of a boutique tech studio delivering managed IT, DevOps, and full‑stack projects for SMBs and non-profits.']::text[],
+  select array['Owner of an independent tech studio delivering managed IT, DevOps, and full‑stack projects for SMBs and non-profits.']::text[],
         array[
           'Standardized device provisioning and compliance with Intune/Autopilot; documented DR with Synology backups.',
           'Containerized services behind Tailscale; built CI/CD with GitHub Actions for static sites and infrastructure repos.',
