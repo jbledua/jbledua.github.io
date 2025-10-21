@@ -15,9 +15,9 @@ export const routes = [
   { path: '/about', element: <About /> },
   { path: '/projects', element: <Projects /> },
   { path: '/resume', element: <ResumeBuilder /> },
-  { path: '/privacy', element: <Privacy /> },
   { path: '/contact', element: <Contact /> },
   // Admin login (not shown in nav)
+  { path: '/privacy', element: <Privacy />, hidden: true },
   { path: '/login', element: <LoginPage />, hidden: true },
   { path: '*', element: <NotFoundPage /> },
 ];

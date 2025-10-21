@@ -9,6 +9,7 @@ import Chip from '@mui/material/Chip';
 import CardActionArea from '@mui/material/CardActionArea';
 import { Link as RouterLink } from 'react-router-dom';
 import { useTheme } from '@mui/material/styles';
+import ArrowOutward from '@mui/icons-material/ArrowOutward';
 
 // Default images to use when no repo logo/banner is found (served locally from public/)
 const DEFAULT_GITHUB_IMAGE_LIGHT = '/images/github-mark.png';
@@ -130,5 +131,103 @@ export default function ProjectCard({ data, mode: forcedMode }) {
         </Button>
       </CardActions>
     </Card>
+  );
+}
+
+// Compact variant: icon, title, one-line description, hover arrow to /projects#slug
+export function CompactProjectCard({ data, mode: forcedMode }) {
+  const theme = useTheme();
+  const mode = forcedMode || theme?.palette?.mode;
+  const {
+    title,
+    description,
+    imageAlt,
+    lightImageUrl,
+    darkImageUrl,
+    fallbackImageUrl,
+    slug,
+  } = data || {};
+
+  const DEFAULT_GITHUB_IMAGE_LIGHT = '/images/github-mark.png';
+  const DEFAULT_GITHUB_IMAGE_DARK = '/images/github-mark-white.png';
+
+  const chosenImage = (mode === 'dark' ? (darkImageUrl || lightImageUrl) : (lightImageUrl || darkImageUrl))
+    || fallbackImageUrl
+    || (mode === 'dark' ? DEFAULT_GITHUB_IMAGE_DARK : DEFAULT_GITHUB_IMAGE_LIGHT);
+
+  const linkTo = slug ? `/projects#${slug}` : undefined;
+
+  return (
+    <Box
+      component={linkTo ? RouterLink : 'div'}
+      to={linkTo}
+      sx={{
+        position: 'relative',
+        borderRadius: 1,
+        border: '1px solid',
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
+        p: 1.5,
+        height: 180,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        justifyContent: 'flex-start',
+        color: 'inherit',
+        textDecoration: 'none',
+        transition: (theme) => theme.transitions.create(['box-shadow', 'transform', 'border-color'], { duration: theme.transitions.duration.shorter }),
+        '&:hover, &:focus-visible': { boxShadow: 6, transform: 'translateY(-2px)', borderColor: 'primary.main' },
+        '&:hover .hoverArrow, &:focus-visible .hoverArrow': { opacity: 1, transform: 'translateY(0)' },
+      }}
+    >
+      <Box sx={{ height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+        <Box
+          component="img"
+          src={chosenImage}
+          alt={imageAlt || `${title} logo`}
+          loading="lazy"
+          onError={(e) => {
+            const img = e.currentTarget;
+            const fallback = (mode === 'dark' ? DEFAULT_GITHUB_IMAGE_DARK : DEFAULT_GITHUB_IMAGE_LIGHT);
+            if (img.src !== window.location.origin + fallback && !img.dataset.fallbackApplied) {
+              img.dataset.fallbackApplied = 'true';
+              img.src = fallback;
+            }
+          }}
+          sx={{ maxHeight: 40, maxWidth: '56%', objectFit: 'contain' }}
+        />
+      </Box>
+      <Typography variant="subtitle1" noWrap title={title} sx={{ fontWeight: 600, mb: 0.5 }}>
+        {title}
+      </Typography>
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+        title={description}
+      >
+        {description || 'No description provided.'}
+      </Typography>
+      {!!slug && (
+        <Box
+          className="hoverArrow"
+          aria-hidden
+          sx={{
+            position: 'absolute',
+            right: 8,
+            top: 8,
+            opacity: 0,
+            transform: 'translateY(-4px)',
+            transition: (theme) => theme.transitions.create(['opacity', 'transform'], { duration: theme.transitions.duration.shorter }),
+            color: 'primary.main',
+            pointerEvents: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+          }}
+        >
+          <ArrowOutward fontSize="small" />
+        </Box>
+      )}
+    </Box>
   );
 }

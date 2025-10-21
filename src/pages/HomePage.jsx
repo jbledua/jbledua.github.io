@@ -6,6 +6,7 @@ import Box from '@mui/material/Box';
 import Section from '../components/Section.jsx';
 import Hero from '../components/Hero.jsx';
 import { Divider } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
 import ProjectCarousel from '../components/ProjectCarousel.jsx';
 
 export default function Home() {
@@ -29,7 +30,6 @@ export default function Home() {
               Founder of Backslash Designs and a recent Computer Science graduate. I’ve spent years helping small businesses and non-profits make technology simple, secure, and scalable, with hands-on experience in Microsoft 365, cloud services, and cybersecurity. My focus is on solving real problems with practical solutions, always learning, iterating, and sharing along the way.
             </Typography>
             <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
-              <Button variant="contained" href="/projects">View Projects</Button>
               <Button variant="outlined" href="/contact">Contact</Button>
             </Stack>
           </Box>
@@ -39,16 +39,21 @@ export default function Home() {
 
       <Divider sx={{ my: 4 }} />
       <Section>
-        <Typography variant="h4" component="h2" gutterBottom>
-          Featured Projects
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+          <Typography variant="h4" component="h2" gutterBottom sx={{ mb: 0 }}>
+            Featured Projects
+          </Typography>
+          <Button component={RouterLink} to="/projects" variant="contained">
+            View Projects
+          </Button>
+        </Box>
         {/** Carousel of Project cards goes here */}
         <Box sx={{ mt: 2 }}>
           <Typography variant="body1" color="text.secondary">
             Check out some of my featured projects below!
           </Typography>
           <Box sx={{ mt: 2 }}>
-            <ProjectCarousel speed={18} visible={3} />
+            <ProjectCarousel variant="compact" cardWidth={360} speed={36} visible={3} />
           </Box>
         </Box>
       </Section>

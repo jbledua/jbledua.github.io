@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import Box from '@mui/material/Box';
 import { useColorMode } from '../theme/ColorModeProvider.jsx';
-import ProjectCard from './ProjectCard.jsx';
+import ProjectCard, { CompactProjectCard } from './ProjectCard.jsx';
 import { listProjects } from '../services/projectsService.js';
 import { getPublicStorageUrl } from '../services/supabaseClient.js';
 import Grid from '@mui/material/Grid';
+import { Link as RouterLink } from 'react-router-dom';
 
 // Lightweight carousel that auto-scrolls horizontally. Pauses on hover/focus.
-export default function ProjectCarousel({ speed = 40, visible = 3, cardWidth = 320 }) {
+export default function ProjectCarousel({ speed = 40, visible = 3, cardWidth = 320, variant = 'card' }) {
   const { mode } = useColorMode();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,6 +17,10 @@ export default function ProjectCarousel({ speed = 40, visible = 3, cardWidth = 3
   const pausedRef = useRef(false);
   const [dupCount, setDupCount] = useState(2);
   const fracRef = useRef(0); // accumulate fractional dx to avoid rounding to 0
+  const DEFAULT_GITHUB_IMAGE_LIGHT = '/images/github-mark.png';
+  const DEFAULT_GITHUB_IMAGE_DARK = '/images/github-mark-white.png';
+  const [showLeftFade, setShowLeftFade] = useState(false);
+  const [showRightFade, setShowRightFade] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -150,6 +155,39 @@ export default function ProjectCarousel({ speed = 40, visible = 3, cardWidth = 3
     };
   }, []);
 
+  // Update left/right fade visibility on scroll and resize
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return undefined;
+
+    const update = () => {
+      const maxScroll = Math.max(0, el.scrollWidth - el.clientWidth);
+      const left = el.scrollLeft > 0;
+      const right = el.scrollLeft < (maxScroll - 1);
+      setShowLeftFade(left);
+      setShowRightFade(right);
+    };
+
+    const onScroll = () => update();
+    el.addEventListener('scroll', onScroll, { passive: true });
+
+    // Compute on next frame to allow layout to settle
+    const id = requestAnimationFrame(update);
+
+    let ro;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(update);
+      ro.observe(el);
+    } else {
+      window.addEventListener('resize', update);
+    }
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(id);
+      if (ro) ro.disconnect(); else window.removeEventListener('resize', update);
+    };
+  }, [items, dupCount, cardWidth]);
+
   // Compute duplication count to ensure overflow even on wide screens
   useEffect(() => {
     const el = containerRef.current;
@@ -220,19 +258,51 @@ export default function ProjectCarousel({ speed = 40, visible = 3, cardWidth = 3
         ) : (
           displayItems.map((p, i) => (
             <Box key={`${p.id || p.slug}-${i}`} sx={{ minWidth: cardWidth, width: cardWidth, flex: '0 0 auto' }}>
-              {/* Render ProjectCard by composing the card UI inline to avoid circular imports. */}
-              <Grid item>
-                <Box sx={{ height: '100%' }}>
-                  
-                  {typeof ProjectCard === 'function' ? <ProjectCard data={p} mode={mode} /> : (
-                    <Box sx={{ bgcolor: 'background.paper', height: 220, borderRadius: 1 }} />
-                  )}
-                </Box>
-              </Grid>
+              {variant === 'compact' ? (
+                <CompactProjectCard data={p} mode={mode} />
+              ) : (
+                // Default full ProjectCard variant
+                <Grid item>
+                  <Box sx={{ height: '100%' }}>
+                    {typeof ProjectCard === 'function' ? <ProjectCard data={p} mode={mode} /> : (
+                      <Box sx={{ bgcolor: 'background.paper', height: 220, borderRadius: 1 }} />
+                    )}
+                  </Box>
+                </Grid>
+              )}
             </Box>
           ))
         )}
       </Box>
+      {/* Edge fade overlays */}
+      <Box
+        aria-hidden
+        sx={{
+          pointerEvents: 'none',
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: 48,
+          opacity: showLeftFade ? 1 : 0,
+          transition: (theme) => theme.transitions.create('opacity', { duration: theme.transitions.duration.shorter }),
+          background: (theme) => `linear-gradient(to right, ${theme.palette.background.default} 0%, rgba(0,0,0,0) 100%)`,
+        }}
+      />
+      <Box
+        aria-hidden
+        sx={{
+          pointerEvents: 'none',
+          position: 'absolute',
+          right: 0,
+          top: 0,
+          bottom: 0,
+          width: 48,
+          opacity: showRightFade ? 1 : 0,
+          transition: (theme) => theme.transitions.create('opacity', { duration: theme.transitions.duration.shorter }),
+          background: (theme) => `linear-gradient(to left, ${theme.palette.background.default} 0%, rgba(0,0,0,0) 100%)`,
+        }}
+      />
     </Box>
   );
 }
