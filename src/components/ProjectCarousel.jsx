@@ -7,13 +7,15 @@ import { getPublicStorageUrl } from '../services/supabaseClient.js';
 import Grid from '@mui/material/Grid';
 
 // Lightweight carousel that auto-scrolls horizontally. Pauses on hover/focus.
-export default function ProjectCarousel({ speed = 18, visible = 3 }) {
+export default function ProjectCarousel({ speed = 40, visible = 3, cardWidth = 320 }) {
   const { mode } = useColorMode();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const containerRef = useRef(null);
   const rafRef = useRef(null);
   const pausedRef = useRef(false);
+  const [dupCount, setDupCount] = useState(2);
+  const fracRef = useRef(0); // accumulate fractional dx to avoid rounding to 0
 
   useEffect(() => {
     let cancelled = false;
@@ -70,10 +72,11 @@ export default function ProjectCarousel({ speed = 18, visible = 3 }) {
     const el = containerRef.current;
     if (!el || items.length === 0) return;
 
-    // We'll use the duplicated content; wrap when we pass half of scrollWidth
-    const getWrapPoint = () => (el.scrollWidth ? el.scrollWidth / 2 : 0);
+    // When content is duplicated dupCount times, wrap after one base copy width
+    const getWrapPoint = () => (el.scrollWidth && dupCount > 0 ? el.scrollWidth / dupCount : 0);
 
-    let lastTime = performance.now();
+  let lastTime = performance.now();
+  fracRef.current = 0;
 
     const step = (now) => {
       if (pausedRef.current) {
@@ -92,7 +95,16 @@ export default function ProjectCarousel({ speed = 18, visible = 3 }) {
         return;
       }
 
-      let next = el.scrollLeft + dx;
+      // Accumulate fractional movement and apply only whole pixels to avoid rounding to zero
+      fracRef.current += dx;
+      const intDx = Math.floor(fracRef.current);
+      if (intDx === 0) {
+        rafRef.current = requestAnimationFrame(step);
+        return;
+      }
+      fracRef.current -= intDx;
+
+      let next = el.scrollLeft + intDx;
       if (next >= wrapPoint) {
         // Subtract wrapPoint to keep position within the first copy
         next -= wrapPoint;
@@ -110,28 +122,77 @@ export default function ProjectCarousel({ speed = 18, visible = 3 }) {
       cancelAnimationFrame(rafRef.current);
       el.style.scrollBehavior = prevScrollBehavior || '';
     };
-  }, [items, speed]);
+  }, [items, speed, dupCount]);
 
-  // Pause on hover/focus
+  // Pause on user interaction (pointer press) and focus; don't pause on mere hover
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return undefined;
-    const onEnter = () => { pausedRef.current = true; };
-    const onLeave = () => { pausedRef.current = false; };
-    el.addEventListener('mouseenter', onEnter);
-    el.addEventListener('mouseleave', onLeave);
-    el.addEventListener('focusin', onEnter);
-    el.addEventListener('focusout', onLeave);
+    const onPointerDown = () => { pausedRef.current = true; };
+    const onPointerUp = () => { pausedRef.current = false; };
+    const onPointerCancel = () => { pausedRef.current = false; };
+    const onFocusIn = () => { pausedRef.current = true; };
+    const onFocusOut = () => { pausedRef.current = false; };
+
+    el.addEventListener('pointerdown', onPointerDown, { passive: true });
+    el.addEventListener('pointerup', onPointerUp, { passive: true });
+    el.addEventListener('pointercancel', onPointerCancel, { passive: true });
+    el.addEventListener('pointerleave', onPointerUp, { passive: true });
+    el.addEventListener('focusin', onFocusIn);
+    el.addEventListener('focusout', onFocusOut);
     return () => {
-      el.removeEventListener('mouseenter', onEnter);
-      el.removeEventListener('mouseleave', onLeave);
-      el.removeEventListener('focusin', onEnter);
-      el.removeEventListener('focusout', onLeave);
+      el.removeEventListener('pointerdown', onPointerDown);
+      el.removeEventListener('pointerup', onPointerUp);
+      el.removeEventListener('pointercancel', onPointerCancel);
+      el.removeEventListener('pointerleave', onPointerUp);
+      el.removeEventListener('focusin', onFocusIn);
+      el.removeEventListener('focusout', onFocusOut);
     };
   }, []);
 
-  // Duplicate items to create an infinite feel if there are enough
-  const displayItems = items.length > 0 ? [...items, ...items] : [];
+  // Compute duplication count to ensure overflow even on wide screens
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || items.length === 0) return;
+
+    const computeDup = () => {
+      // Base width approximated as scrollWidth / dupCount
+      const containerW = el.clientWidth;
+      const totalW = el.scrollWidth;
+      const currentDup = Math.max(dupCount, 1);
+      const baseW = totalW > 0 ? totalW / currentDup : 0;
+      if (containerW === 0 || baseW === 0) return; // wait for layout
+      // We want at least 2x container width for smooth wrapping
+      const needed = Math.max(2, Math.ceil((containerW * 2) / baseW));
+      const capped = Math.min(needed, 12); // avoid excessive DOM nodes
+      if (capped !== dupCount) setDupCount(capped);
+    };
+
+    // Compute after a tick to let layout settle
+    const id = requestAnimationFrame(computeDup);
+
+    // Recompute on resize
+    let ro;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => computeDup());
+      ro.observe(el);
+    } else {
+      window.addEventListener('resize', computeDup);
+    }
+    return () => {
+      cancelAnimationFrame(id);
+      if (ro) ro.disconnect();
+      else window.removeEventListener('resize', computeDup);
+    };
+  }, [items, dupCount]);
+
+  // Duplicate items dupCount times to create an infinite feel
+  const displayItems = useMemo(() => {
+    if (items.length === 0) return [];
+    const arr = [];
+    for (let i = 0; i < dupCount; i += 1) arr.push(...items);
+    return arr;
+  }, [items, dupCount]);
 
   return (
     <Box sx={{ position: 'relative', overflow: 'hidden' }}>
@@ -145,24 +206,24 @@ export default function ProjectCarousel({ speed = 18, visible = 3 }) {
           scrollBehavior: 'smooth',
           py: 1,
           px: 1,
+          willChange: 'scroll-position',
           '&::-webkit-scrollbar': { display: 'none' },
         }}
         aria-label="Featured projects carousel"
       >
         {loading && displayItems.length === 0 ? (
           Array.from({ length: visible }).map((_, i) => (
-            <Box key={`skeleton-${i}`} sx={{ minWidth: 320, flex: '0 0 auto' }}>
+            <Box key={`skeleton-${i}`} sx={{ minWidth: cardWidth, width: cardWidth, flex: '0 0 auto' }}>
               <Box sx={{ height: 220, bgcolor: 'background.paper', borderRadius: 1 }} />
             </Box>
           ))
         ) : (
           displayItems.map((p, i) => (
-            <Box key={`${p.id || p.slug}-${i}`} sx={{ minWidth: 320, flex: '0 0 auto' }}>
+            <Box key={`${p.id || p.slug}-${i}`} sx={{ minWidth: cardWidth, width: cardWidth, flex: '0 0 auto' }}>
               {/* Render ProjectCard by composing the card UI inline to avoid circular imports. */}
               <Grid item>
                 <Box sx={{ height: '100%' }}>
-                  {/* Reuse the card markup by delegating to the ProjectsPage's ProjectCard component if exported; otherwise simple placeholder */}
-                  {/* Attempt to render ProjectCard component from ProjectsPage.jsx; if it's not a default export of an individual component, fallback to a simple box. */}
+                  
                   {typeof ProjectCard === 'function' ? <ProjectCard data={p} mode={mode} /> : (
                     <Box sx={{ bgcolor: 'background.paper', height: 220, borderRadius: 1 }} />
                   )}
