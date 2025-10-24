@@ -8,8 +8,8 @@ import { Link as RouterLink } from 'react-router-dom';
 
 // Hero with two-line typing, then height shrinks from 100vh to 50vh
 export default function Hero({ reasonText }) {
-    const first = 'Pursue Excellence,';
-    const second = 'Not Perfection';
+    const first = 'Relentlessly Pursue';
+    const second = 'Excellence';
 
     const [text, setText] = useState('');
     const [phase, setPhase] = useState(0); // 0 typing first, 1 pause, 2 typing second, 3 done
@@ -135,8 +135,7 @@ export default function Hero({ reasonText }) {
     );
 
     const defaultReason =
-        'Excellence comes from consistent, deliberate practice. I build and share to learn in public, iterate quickly, and deliver real value—not to chase perfection.';
-
+        "Building with intention, learning through iteration, and refining with discipline. Every project is an evolving craft — grounded in reliability, shaped by curiosity, and driven by the pursuit of lasting impact rather than fleeting perfection."
     const showReason = phase === 3;
     // Tooltip message for the inline info icon (dynamic based on fetched stats)
     const repoMessage = (() => {
